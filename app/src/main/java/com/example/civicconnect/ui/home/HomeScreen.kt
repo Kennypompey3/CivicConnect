@@ -21,6 +21,15 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.civicconnect.R
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.remember
+import androidx.compose.material3.windowsizeclass.WindowSizeClass
+import com.example.civicconnect.ui.components.FloatingPillBottomNavBar
+import com.example.civicconnect.ui.components.PillNavItem
+import androidx.compose.ui.unit.IntSize
+import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
 import com.example.civicconnect.ui.theme.CivicConnectTheme
 
 data class Issue(
@@ -40,10 +49,39 @@ enum class IssueStatus(val displayName: String, val color: Color) {
 }
 
 @Composable
-fun HomeScreen() {
+fun HomeScreen(windowSizeClass: WindowSizeClass) {
+    var selectedTab by remember { mutableIntStateOf(0) }
+
+    // Use your existing icons from drawables
+    val tabs = remember {
+        listOf(
+            PillNavItem("Home", R.drawable.ic_home),
+            PillNavItem("Location", R.drawable.ic_location),
+            PillNavItem("Alerts", R.drawable.ic_notifications),
+            PillNavItem("Profile", R.drawable.ic_profile),
+        )
+    }
+
     Scaffold(
-        bottomBar = { BottomNavigationBar() }
+        bottomBar = {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .windowInsetsPadding(WindowInsets.navigationBars)
+                    .padding(horizontal = 50.dp, vertical = 10.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                FloatingPillBottomNavBar(
+                    items = tabs,
+                    selectedIndex = selectedTab,
+                    onSelect = { selectedTab = it },
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        }
+
     ) { paddingValues ->
+        // ✅ Your existing UI stays exactly the same here:
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
@@ -51,21 +89,14 @@ fun HomeScreen() {
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            item {
-                Header()
-            }
-            item {
-                ImpactScoreCard()
-            }
-            item {
-                NearbyIssuesHeader()
-            }
-            items(sampleIssues) { issue ->
-                IssueItem(issue = issue)
-            }
+            item { Header() }
+            item { ImpactScoreCard() }
+            item { NearbyIssuesHeader() }
+            items(sampleIssues) { issue -> IssueItem(issue = issue) }
         }
     }
 }
+
 
 @Composable
 fun Header() {
@@ -195,52 +226,6 @@ fun IssueItem(issue: Issue) {
     }
 }
 
-@Composable
-fun BottomNavigationBar() {
-    val configuration = LocalConfiguration.current
-    val screenWidth = configuration.screenWidthDp.dp
-    val screenHeight = configuration.screenHeightDp.dp
-
-    val navBarWidth = screenWidth * (360f / 452f)
-    val navBarHeight = screenHeight * (72f / 915f)
-
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        NavigationBar(
-            modifier = Modifier
-                .width(navBarWidth)
-                .height(navBarHeight)
-                .clip(RoundedCornerShape(24.dp)),
-            containerColor = Color(0xFF2E2E2E)
-        ) {
-            NavigationBarItem(
-                selected = true,
-                onClick = { },
-                icon = { Icon(painter = painterResource(id = R.drawable.ic_home), contentDescription = "Home", tint = Color.White) }
-            )
-            NavigationBarItem(
-                selected = false,
-                onClick = { },
-                icon = { Icon(painter = painterResource(id = R.drawable.ic_location), contentDescription = "Location", tint = Color.Gray) }
-            )
-            NavigationBarItem(
-                selected = false,
-                onClick = { },
-                icon = { Icon(painter = painterResource(id = R.drawable.ic_notifications), contentDescription = "Notifications", tint = Color.Gray) }
-            )
-            NavigationBarItem(
-                selected = false,
-                onClick = { },
-                icon = { Icon(painter = painterResource(id = R.drawable.ic_profile), contentDescription = "Profile", tint = Color.Gray) }
-            )
-        }
-    }
-}
-
 val sampleIssues = listOf(
     Issue(
         id = 1,
@@ -270,11 +255,3 @@ val sampleIssues = listOf(
         icon = R.drawable.ic_waste
     )
 )
-
-@Preview(showBackground = true)
-@Composable
-fun HomeScreenPreview() {
-    CivicConnectTheme {
-        HomeScreen()
-    }
-}
