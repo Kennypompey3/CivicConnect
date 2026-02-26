@@ -5,7 +5,6 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
-import com.example.civicconnect.ui.home.HomeScreen
 import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
 import com.example.civicconnect.ui.theme.CivicConnectTheme
 
@@ -18,7 +17,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             val windowSizeClass = calculateWindowSizeClass(this)
             CivicConnectTheme {
-                HomeScreen(windowSizeClass = windowSizeClass)
+                com.example.civicconnect.ui.MainTabsScreen(windowSizeClass = windowSizeClass)
             }
         }
     }
