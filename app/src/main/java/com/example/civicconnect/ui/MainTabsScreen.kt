@@ -16,6 +16,7 @@ import com.example.civicconnect.ui.components.PillNavItem
 import com.example.civicconnect.ui.home.HomeScreen
 import androidx.compose.material3.Text
 import com.example.civicconnect.ui.location.LocationScreen
+import com.example.civicconnect.ui.profile.ProfileScreen
 
 @Composable
 fun MainTabsScreen(windowSizeClass: WindowSizeClass) {
@@ -50,7 +51,7 @@ fun MainTabsScreen(windowSizeClass: WindowSizeClass) {
             )
 
             2 -> PlaceholderScreen(title = "Alerts")
-            3 -> PlaceholderScreen(title = "Profile")
+            3 -> ProfileScreen(windowSizeClass = windowSizeClass)
         }
 
         // -------------------------
