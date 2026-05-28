@@ -6,11 +6,21 @@ import android.content.pm.PackageManager
 import android.location.Location
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.material3.windowsizeclass.WindowSizeClass
 import androidx.compose.runtime.*
@@ -38,7 +48,6 @@ import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
 import com.google.maps.android.compose.*
 
-// Re-added the missing Enum definition right here!
 enum class LocationFilter(val label: String) {
     ALL("All Issues"),
     MINE("My Reports"),
@@ -59,7 +68,8 @@ private object LocationLayoutDefaults {
 @Composable
 fun LocationScreen(
     windowSizeClass: WindowSizeClass,
-    showBottomNav: Boolean = true
+    showBottomNav: Boolean = true,
+    onStartReportCreation: (LatLng) -> Unit = {} // Event handler linking to our wizard setup
 ) {
     var selectedTab by remember { mutableIntStateOf(1) }
     var selectedFilter by remember { mutableStateOf(LocationFilter.ALL) }
@@ -91,6 +101,7 @@ fun LocationScreen(
                 LocationMapCardPhase2(
                     selectedFilter = selectedFilter,
                     onFilterSelected = { selectedFilter = it },
+                    onReportConfirmed = onStartReportCreation,
                     modifier = Modifier.fillMaxWidth().weight(1f)
                 )
 
@@ -143,11 +154,16 @@ fun LocationScreen(
 private fun LocationMapCardPhase2(
     selectedFilter: LocationFilter,
     onFilterSelected: (LocationFilter) -> Unit,
+    onReportConfirmed: (LatLng) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
     val fusedClient = remember { LocationServices.getFusedLocationProviderClient(context) }
     val fallbackLatLng = remember { LatLng(6.5244, 3.3792) }
+
+    // Interactivity State Memory boxes
+    var droppedPinCoordinates by remember { mutableStateOf<LatLng?>(null) }
+    var isPopupVisible by remember { mutableStateOf(false) }
 
     var hasLocationPermission by remember {
         mutableStateOf(
@@ -187,16 +203,32 @@ private fun LocationMapCardPhase2(
         }
     }
 
+    // This clipped Box acts as the bounds boundary container for slide visibility animations
     Box(modifier = modifier.clip(RoundedCornerShape(20.dp)).background(Color(0xFFE9EEF2))) {
         GoogleMap(
             modifier = Modifier.matchParentSize(),
             cameraPositionState = cameraPositionState,
             properties = MapProperties(isMyLocationEnabled = hasLocationPermission),
-            uiSettings = MapUiSettings(myLocationButtonEnabled = false, zoomControlsEnabled = false, compassEnabled = true, mapToolbarEnabled = false)
+            uiSettings = MapUiSettings(myLocationButtonEnabled = false, zoomControlsEnabled = false, compassEnabled = true, mapToolbarEnabled = false),
+            // Activating long click tracker interceptor
+            onMapLongClick = { coordinates ->
+                droppedPinCoordinates = coordinates
+                isPopupVisible = true
+            }
         ) {
-            Marker(state = MarkerState(position = LatLng(6.5030, 3.3600)), title = "Pothole", snippet = "4th Avenue & Main")
-            Marker(state = MarkerState(position = LatLng(6.5150, 3.3950)), title = "Faulty Streetlight", snippet = "Central Park Entrance")
-            Marker(state = MarkerState(position = LatLng(6.4900, 3.3700)), title = "Waste Dump", snippet = "Behind Market St")
+            // Static indicators
+            Marker(state = rememberMarkerState(position = LatLng(6.5030, 3.3600)), title = "Pothole", snippet = "4th Avenue & Main")
+            Marker(state = rememberMarkerState(position = LatLng(6.5150, 3.3950)), title = "Faulty Streetlight", snippet = "Central Park Entrance")
+            Marker(state = rememberMarkerState(position = LatLng(6.4900, 3.3700)), title = "Waste Dump", snippet = "Behind Market St")
+
+            // Dynamic dropped marker displays conditionally
+            droppedPinCoordinates?.let { pinLocation ->
+                Marker(
+                    state = rememberMarkerState(position = pinLocation),
+                    title = "Selected Location",
+                    snippet = "Long-pressed coordinate position"
+                )
+            }
         }
 
         Row(modifier = Modifier.align(Alignment.TopStart).padding(horizontal = 12.dp, vertical = 12.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -205,9 +237,116 @@ private fun LocationMapCardPhase2(
             FilterChipPill(label = LocationFilter.TRENDING.label, selected = selectedFilter == LocationFilter.TRENDING, onClick = { onFilterSelected(LocationFilter.TRENDING) })
         }
 
-        if (!hasLocationPermission) {
+        // ---------------------------------------------------------------------
+        // Smooth sliding Context Popup Overlay (Matches Issue Reporting Mockup_2.png)
+        // ---------------------------------------------------------------------
+        AnimatedVisibility(
+            visible = isPopupVisible,
+            modifier = Modifier.align(Alignment.BottomCenter),
+            enter = slideInVertically(initialOffsetY = { height -> height }) + fadeIn(),
+            exit = slideOutVertically(targetOffsetY = { height -> height }) + fadeOut()
+        ) {
+            CardModalPopup(
+                onCancelClick = {
+                    isPopupVisible = false
+                    droppedPinCoordinates = null // Removes marker flag safely
+                },
+                onStartClick = {
+                    isPopupVisible = false
+                    droppedPinCoordinates?.let { location -> onReportConfirmed(location) }
+                }
+            )
+        }
+
+        if (!hasLocationPermission && !isPopupVisible) {
             Box(modifier = Modifier.align(Alignment.Center).clip(RoundedCornerShape(16.dp)).background(Color.White.copy(alpha = 0.92f)).padding(horizontal = 14.dp, vertical = 10.dp)) {
                 Text(text = "Enable location to center map on you", color = Color(0xFF1F2937), fontSize = 13.sp, fontWeight = FontWeight.Medium)
+            }
+        }
+    }
+}
+
+// ---------------------------------------------------------------------
+// Popup Card Blueprint Layout Widget
+// ---------------------------------------------------------------------
+@Composable
+private fun CardModalPopup(
+    onCancelClick: () -> Unit,
+    onStartClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 12.dp, vertical = 12.dp) // Relaxed outer boundary margins
+            .clip(RoundedCornerShape(24.dp))
+            .background(Color(0xFF1B263B))
+            .padding(horizontal = 16.dp, vertical = 20.dp), // Optimized inner container walls
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Icon(
+            imageVector = Icons.Default.LocationOn,
+            contentDescription = "Pin Location Drop",
+            tint = Color.White,
+            modifier = Modifier.size(32.dp)
+        )
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        Text(
+            text = "Report Issue Here?",
+            color = Color.White,
+            fontSize = 20.sp,
+            fontWeight = FontWeight.Bold
+        )
+
+        Spacer(modifier = Modifier.height(4.dp))
+
+        Text(
+            text = "Create a new report at this location",
+            color = Color(0xFF90A199),
+            fontSize = 13.sp,
+            fontWeight = FontWeight.Normal
+        )
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp) // Crisp, unified gap between choices
+        ) {
+            // Cancel Action Button
+            Button(
+                onClick = onCancelClick,
+                modifier = Modifier.weight(1f).height(48.dp),
+                shape = RoundedCornerShape(999.dp),
+                contentPadding = PaddingValues(horizontal = 4.dp), // Clears text suffocation
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFC9CBD6))
+            ) {
+                Text(
+                    text = "Cancel",
+                    color = Color(0xFF1B263B),
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 14.sp,
+                    maxLines = 1
+                )
+            }
+
+            // Confirm / Start Action Button
+            Button(
+                onClick = onStartClick,
+                modifier = Modifier.weight(1f).height(48.dp),
+                shape = RoundedCornerShape(999.dp),
+                contentPadding = PaddingValues(horizontal = 4.dp), // Gives the phrase room to breathe
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF415A77))
+            ) {
+                Text(
+                    text = "Start Report",
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 14.sp,
+                    maxLines = 1
+                )
             }
         }
     }

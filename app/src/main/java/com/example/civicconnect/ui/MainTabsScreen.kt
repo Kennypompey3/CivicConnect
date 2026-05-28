@@ -9,17 +9,22 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import androidx.compose.material3.Text
 import com.example.civicconnect.R
 import com.example.civicconnect.ui.components.FloatingPillBottomNavBar
 import com.example.civicconnect.ui.components.PillNavItem
 import com.example.civicconnect.ui.home.HomeScreen
-import androidx.compose.material3.Text
 import com.example.civicconnect.ui.location.LocationScreen
 import com.example.civicconnect.ui.profile.ProfileScreen
+// Make sure this import is here to access your new wizard!
+import com.example.civicconnect.ui.report.ReportWizardScreen
 
 @Composable
 fun MainTabsScreen(windowSizeClass: WindowSizeClass) {
     var selectedTab by remember { mutableIntStateOf(0) }
+
+    // 1. The state variable that controls the wizard's visibility
+    var showReportWizard by remember { mutableStateOf(false) }
 
     val tabs = remember {
         listOf(
@@ -31,19 +36,27 @@ fun MainTabsScreen(windowSizeClass: WindowSizeClass) {
     }
 
     Box(modifier = Modifier.fillMaxSize().background(Color(0xFFF8FAFC))) {
+        // --- BASE LAYER: TABS ---
         when (selectedTab) {
-            0 -> HomeScreen(
-                windowSizeClass = windowSizeClass,
-                showBottomNav = false
-            )
+            0 -> HomeScreen(windowSizeClass = windowSizeClass, showBottomNav = false)
             1 -> LocationScreen(
                 windowSizeClass = windowSizeClass,
-                showBottomNav = false
+                showBottomNav = false,
+                onStartReportCreation = { coordinates -> showReportWizard = true }
             )
             2 -> PlaceholderScreen(title = "Alerts")
             3 -> ProfileScreen(windowSizeClass = windowSizeClass)
         }
 
+        // --- MIDDLE LAYER: THE WIZARD ---
+        if (showReportWizard) {
+            ReportWizardScreen(
+                onDismissWizard = { showReportWizard = false },
+                modifier = Modifier.fillMaxSize()
+            )
+        }
+
+        // --- TOP LAYER: NAV BAR GRADIENT & PILL ---
         Box(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
