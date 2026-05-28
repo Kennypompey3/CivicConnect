@@ -4,7 +4,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.windowsizeclass.WindowSizeClass
 import androidx.compose.runtime.*
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
@@ -20,7 +19,7 @@ import com.example.civicconnect.ui.profile.ProfileScreen
 
 @Composable
 fun MainTabsScreen(windowSizeClass: WindowSizeClass) {
-    var selectedTab by remember { mutableIntStateOf(0) } // 0=Home, 1=Location, 2=Alerts, 3=Profile
+    var selectedTab by remember { mutableIntStateOf(0) }
 
     val tabs = remember {
         listOf(
@@ -31,32 +30,20 @@ fun MainTabsScreen(windowSizeClass: WindowSizeClass) {
         )
     }
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color(0xFFF8FAFC))
-    ) {
-        // -------------------------
-        // CONTENT LAYER
-        // -------------------------
+    Box(modifier = Modifier.fillMaxSize().background(Color(0xFFF8FAFC))) {
         when (selectedTab) {
             0 -> HomeScreen(
                 windowSizeClass = windowSizeClass,
-                showBottomNav = false // ✅ content only
+                showBottomNav = false
             )
-
             1 -> LocationScreen(
                 windowSizeClass = windowSizeClass,
-                showBottomNav = false // ✅ content only
+                showBottomNav = false
             )
-
             2 -> PlaceholderScreen(title = "Alerts")
             3 -> ProfileScreen(windowSizeClass = windowSizeClass)
         }
 
-        // -------------------------
-        // TINY BOTTOM GRADIENT FADE (behind nav)
-        // -------------------------
         Box(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
@@ -74,9 +61,6 @@ fun MainTabsScreen(windowSizeClass: WindowSizeClass) {
                 )
         )
 
-        // -------------------------
-        // NAV OVERLAY LAYER
-        // -------------------------
         Box(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
@@ -88,7 +72,7 @@ fun MainTabsScreen(windowSizeClass: WindowSizeClass) {
             FloatingPillBottomNavBar(
                 items = tabs,
                 selectedIndex = selectedTab,
-                onSelect = { selectedTab = it }, // ✅ actual tab switch
+                onSelect = { selectedTab = it },
                 modifier = Modifier.fillMaxWidth()
             )
         }
@@ -97,13 +81,7 @@ fun MainTabsScreen(windowSizeClass: WindowSizeClass) {
 
 @Composable
 private fun PlaceholderScreen(title: String) {
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(
-            text = "$title Screen",
-            color = Color.Black
-        )
+    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        Text(text = "$title Screen", color = Color.Black)
     }
 }
