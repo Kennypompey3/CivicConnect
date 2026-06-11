@@ -18,12 +18,13 @@ data class CivicCategory(
     val iconRes: Int      // We use local drawables for now, easily swappable to URLs later
 )
 
-// 2. The Form State Payload
+// 1. Add the URI property straight to your central state model
 data class ReportUiState(
     val currentStep: Int = 1,
     val categories: List<CivicCategory> = emptyList(),
     val selectedCategory: CivicCategory? = null,
     val description: String = "",
+    val selectedImageUri: android.net.Uri? = null, // Holds our secure content pointer
     val latitude: Double? = null,
     val longitude: Double? = null,
     val isSubmitting: Boolean = false,
@@ -35,20 +36,24 @@ class ReportViewModel : ViewModel() {
     private val _uiState = MutableStateFlow(ReportUiState())
     val uiState: StateFlow<ReportUiState> = _uiState.asStateFlow()
 
+    fun updateSelectedImageUri(uri: android.net.Uri?) {
+        _uiState.update { it.copy(selectedImageUri = uri) }
+    }
+
     init {
         // Automatically fetch the categories when the user opens the wizard
         fetchCategories()
     }
 
     private fun fetchCategories() {
-        // TODO: Replace this with your actual Retrofit/Node.js network call later
+        // We map each category to its specific, dedicated vector resource ID
         val mockApiCategories = listOf(
-            CivicCategory("TRANS", "Transport", "#E6E6E6", R.drawable.ic_home), // Note: swap ic_home for your actual icons later!
-            CivicCategory("ELEC", "Electricity", "#E6E6E6", R.drawable.ic_home),
-            CivicCategory("DRAIN", "Blocked Drain", "#E6E6E6", R.drawable.ic_home),
-            CivicCategory("WASTE", "Waste Dump", "#E6E6E6", R.drawable.ic_home),
-            CivicCategory("DANGER", "Danger", "#E6E6E6", R.drawable.ic_home),
-            CivicCategory("OTHER", "Other", "#E6E6E6", R.drawable.ic_home)
+            CivicCategory("TRANS", "Transport", "#E6E6E6", R.drawable.ph_barricade_fill),
+            CivicCategory("ELEC", "Electricity", "#E6E6E6", R.drawable.mingcute_bulb_line),
+            CivicCategory("DRAIN", "Blocked Drain", "#E6E6E6", R.drawable.mdi_water_alert_outline),
+            CivicCategory("WASTE", "Waste Dump", "#E6E6E6", R.drawable.si_bin_duotone),
+            CivicCategory("DANGER", "Danger", "#E6E6E6", R.drawable.mynaui_danger_triangle_solid),
+            CivicCategory("OTHER", "Other", "#E6E6E6", R.drawable.iconoir_community)
         )
 
         _uiState.update { it.copy(categories = mockApiCategories) }

@@ -31,6 +31,11 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.material.icons.filled.BrokenImage
+import androidx.compose.material.icons.filled.Check
 import com.example.civicconnect.ui.theme.CivicConnectTheme
 
 @Composable
@@ -82,6 +87,7 @@ fun ReportWizardScreen(
                     2 -> DetailFormStep(
                         uiState = uiState,
                         onDescriptionChanged = { text -> viewModel.updateDescription(text) },
+                        onImageSelected = { uri -> viewModel.updateSelectedImageUri(uri) }, // Passes it up to the brain
                         onSubmitReport = { viewModel.submitReport() }
                     )
                     3 -> SuccessConfirmationStep(
@@ -161,13 +167,22 @@ private fun CategorySelectionStep(
 private fun DetailFormStep(
     uiState: ReportUiState,
     onDescriptionChanged: (String) -> Unit,
+    onImageSelected: (android.net.Uri?) -> Unit, // Callback to send URI up to the ViewModel
     onSubmitReport: () -> Unit
 ) {
+    // 1. Register the native Photo Picker Contract launcher bridge
+    val photoPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia()
+    ) { uri ->
+        // This block intercepts the image selection return event safely
+        onImageSelected(uri)
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(bottom = 140.dp) // Scroll clearance above nav bar
+            .padding(bottom = 140.dp)
     ) {
         Text(
             text = "Add Report Details",
@@ -177,30 +192,69 @@ private fun DetailFormStep(
         )
         Spacer(modifier = Modifier.height(24.dp))
 
+        // 2. Interactive Photo Upload Box Container
+        val hasImage = uiState.selectedImageUri != null
+
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(160.dp)
                 .clip(RoundedCornerShape(20.dp))
-                .background(Color(0xFFE0E1DD))
-                .border(2.dp, Color(0xFF1B263B).copy(alpha = 0.1f), RoundedCornerShape(20.dp))
-                .clickable { },
+                .background(if (hasImage) Color(0xFF415A77).copy(alpha = 0.15f) else Color(0xFFE0E1DD))
+                .border(
+                    width = 2.dp,
+                    color = if (hasImage) Color(0xFF50BB6E) else Color(0xFF1B263B).copy(alpha = 0.1f),
+                    shape = RoundedCornerShape(20.dp)
+                )
+                .clickable {
+                    // Launch the system component to only filter for standard image files
+                    photoPickerLauncher.launch(
+                        PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                    )
+                },
             contentAlignment = Alignment.Center
         ) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Icon(
-                    imageVector = Icons.Default.CloudUpload,
-                    contentDescription = "Upload",
-                    tint = Color(0xFF1B263B),
-                    modifier = Modifier.size(36.dp)
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                Text("Take or upload a photo", color = Color(0xFF1B263B), fontWeight = FontWeight.Medium)
+                if (hasImage) {
+                    // Success UI Feedback State
+                    Icon(
+                        imageVector = Icons.Default.Check,
+                        contentDescription = "Photo Loaded Success",
+                        tint = Color(0xFF50BB6E),
+                        modifier = Modifier.size(36.dp)
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "Photo Attached Successfully",
+                        color = Color(0xFF1B263B),
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = "Tap again to change image",
+                        color = Color(0xFF90A199),
+                        fontSize = 12.sp
+                    )
+                } else {
+                    // Default Empty State matching your design layouts
+                    Icon(
+                        imageVector = Icons.Default.CloudUpload,
+                        contentDescription = "Upload Placeholder",
+                        tint = Color(0xFF1B263B),
+                        modifier = Modifier.size(36.dp)
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "Take or upload a photo",
+                        color = Color(0xFF1B263B),
+                        fontWeight = FontWeight.Medium
+                    )
+                }
             }
         }
 
         Spacer(modifier = Modifier.height(20.dp))
 
+        // GPS Verification Status Bar
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -241,7 +295,8 @@ private fun DetailFormStep(
 
         Button(
             onClick = onSubmitReport,
-            enabled = uiState.description.isNotBlank() && !uiState.isSubmitting,
+            // Force compliance: both a valid description AND a photo must be pinned to submit
+            enabled = uiState.description.isNotBlank() && hasImage && !uiState.isSubmitting,
             modifier = Modifier
                 .fillMaxWidth()
                 .height(54.dp),

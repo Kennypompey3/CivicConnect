@@ -8,6 +8,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.unit.dp
 import androidx.compose.material3.Text
 import com.example.civicconnect.R
@@ -16,15 +18,15 @@ import com.example.civicconnect.ui.components.PillNavItem
 import com.example.civicconnect.ui.home.HomeScreen
 import com.example.civicconnect.ui.location.LocationScreen
 import com.example.civicconnect.ui.profile.ProfileScreen
-// Make sure this import is here to access your new wizard!
 import com.example.civicconnect.ui.report.ReportWizardScreen
 
 @Composable
 fun MainTabsScreen(windowSizeClass: WindowSizeClass) {
-    var selectedTab by remember { mutableIntStateOf(0) }
-
-    // 1. The state variable that controls the wizard's visibility
+    var selectedTab by remember { mutableIntStateOf(1) } // Start on Location screen for easier testing
     var showReportWizard by remember { mutableStateOf(false) }
+
+    // Grabbing access to the device's taptic engine hardware pipeline
+    val hapticFeedback = LocalHapticFeedback.current
 
     val tabs = remember {
         listOf(
@@ -36,19 +38,19 @@ fun MainTabsScreen(windowSizeClass: WindowSizeClass) {
     }
 
     Box(modifier = Modifier.fillMaxSize().background(Color(0xFFF8FAFC))) {
-        // --- BASE LAYER: TABS ---
+        // --- BASE LAYER: PRIMARY CONTENT SCREENS ---
         when (selectedTab) {
             0 -> HomeScreen(windowSizeClass = windowSizeClass, showBottomNav = false)
             1 -> LocationScreen(
                 windowSizeClass = windowSizeClass,
                 showBottomNav = false,
-                onStartReportCreation = { coordinates -> showReportWizard = true }
+                onStartReportCreation = { _ -> showReportWizard = true }
             )
             2 -> PlaceholderScreen(title = "Alerts")
             3 -> ProfileScreen(windowSizeClass = windowSizeClass)
         }
 
-        // --- MIDDLE LAYER: THE WIZARD ---
+        // --- MIDDLE LAYER: THE GESTURE WIZARD OVERLAY ---
         if (showReportWizard) {
             ReportWizardScreen(
                 onDismissWizard = { showReportWizard = false },
@@ -56,7 +58,7 @@ fun MainTabsScreen(windowSizeClass: WindowSizeClass) {
             )
         }
 
-        // --- TOP LAYER: NAV BAR GRADIENT & PILL ---
+        // --- TOP LAYER: FLOATING NAVBAR FADE SHIELD ---
         Box(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
@@ -74,6 +76,7 @@ fun MainTabsScreen(windowSizeClass: WindowSizeClass) {
                 )
         )
 
+        // --- TOP LAYER: OVERLAY INTERACTION NAV PILL ---
         Box(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
@@ -85,7 +88,16 @@ fun MainTabsScreen(windowSizeClass: WindowSizeClass) {
             FloatingPillBottomNavBar(
                 items = tabs,
                 selectedIndex = selectedTab,
-                onSelect = { selectedTab = it },
+                onSelect = { index ->
+                    // 1. Deliver tactile crisp click confirmation haptics to the user's thumb
+                    hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
+
+                    // 2. Safely swap the base context tab container value
+                    selectedTab = index
+
+                    // 3. Clear out the wizard completely if active, unlocking navigation blocks cleanly
+                    showReportWizard = false
+                },
                 modifier = Modifier.fillMaxWidth()
             )
         }
