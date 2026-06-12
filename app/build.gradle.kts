@@ -55,6 +55,9 @@ dependencies {
     implementation("com.google.android.gms:play-services-location:21.3.0")
     implementation("com.google.maps.android:maps-compose:8.3.0")
 
+    implementation("app.rive:rive-android:11.6.1")
+    implementation("androidx.startup:startup-runtime:1.2.0")
+
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.10.0")
 
     testImplementation(libs.junit)
