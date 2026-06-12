@@ -60,7 +60,11 @@ class ReportViewModel : ViewModel() {
     }
 
     // --- User Interaction Events ---
-
+    fun resetForm() {
+        _uiState.update { current ->
+            ReportUiState(categories = current.categories)
+        }
+    }
     fun setLocation(lat: Double, lng: Double) {
         _uiState.update { it.copy(latitude = lat, longitude = lng) }
     }

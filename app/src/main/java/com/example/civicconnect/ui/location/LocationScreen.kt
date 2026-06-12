@@ -46,6 +46,8 @@ import com.example.civicconnect.ui.theme.CivicConnectTheme
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
+import kotlinx.coroutines.launch
+import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.maps.android.compose.*
 
 enum class LocationFilter(val label: String) {
@@ -158,22 +160,24 @@ private fun LocationMapCardPhase2(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
-    val fusedClient = remember { LocationServices.getFusedLocationProviderClient(context) }
-    val fallbackLatLng = remember { LatLng(6.5244, 3.3792) }
 
-    // Interactivity State Memory boxes
+    // 1. Grab our coroutine scope handler to manage background thread frame execution
+    val coroutineScope = rememberCoroutineScope()
+    val fusedClient = remember { LocationServices.getFusedLocationProviderClient(context) }
+    val defaultLagos = remember { LatLng(6.5244, 3.3792) }
+
     var droppedPinCoordinates by remember { mutableStateOf<LatLng?>(null) }
     var isPopupVisible by remember { mutableStateOf(false) }
+    var userLocation by remember { mutableStateOf<LatLng?>(null) }
+    var isCameraAnchoredToUser by remember { mutableStateOf(true) }
 
     var hasLocationPermission by remember {
-        mutableStateOf(
-            ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
-        )
+        mutableStateOf(ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED)
     }
 
-    var userLocation by remember { mutableStateOf<LatLng?>(null) }
-    var hasCenteredOnUser by remember { mutableStateOf(false) }
-    val cameraPositionState = rememberCameraPositionState { position = CameraPosition.fromLatLngZoom(fallbackLatLng, 12f) }
+    val cameraPositionState = rememberCameraPositionState {
+        position = CameraPosition.fromLatLngZoom(defaultLagos, 12f)
+    }
 
     val permissionLauncher = rememberLauncherForActivityResult(contract = ActivityResultContracts.RequestPermission()) { granted ->
         hasLocationPermission = granted
@@ -188,80 +192,95 @@ private fun LocationMapCardPhase2(
     LaunchedEffect(hasLocationPermission) {
         if (hasLocationPermission) {
             fusedClient.lastLocation.addOnSuccessListener { location: Location? ->
-                if (location != null) {
-                    userLocation = LatLng(location.latitude, location.longitude)
+                location?.let {
+                    val currentLatLng = LatLng(it.latitude, it.longitude)
+                    userLocation = currentLatLng
+                    if (isCameraAnchoredToUser) {
+                        cameraPositionState.position = CameraPosition.fromLatLngZoom(currentLatLng, 16f)
+                    }
                 }
             }
         }
     }
 
-    LaunchedEffect(userLocation) {
-        val loc = userLocation
-        if (loc != null && !hasCenteredOnUser) {
-            cameraPositionState.position = CameraPosition.fromLatLngZoom(loc, 15f)
-            hasCenteredOnUser = true
+    LaunchedEffect(cameraPositionState.isMoving) {
+        if (cameraPositionState.isMoving && cameraPositionState.cameraMoveStartedReason == CameraMoveStartedReason.GESTURE) {
+            isCameraAnchoredToUser = false
         }
     }
 
-    // This clipped Box acts as the bounds boundary container for slide visibility animations
     Box(modifier = modifier.clip(RoundedCornerShape(20.dp)).background(Color(0xFFE9EEF2))) {
         GoogleMap(
             modifier = Modifier.matchParentSize(),
             cameraPositionState = cameraPositionState,
             properties = MapProperties(isMyLocationEnabled = hasLocationPermission),
             uiSettings = MapUiSettings(myLocationButtonEnabled = false, zoomControlsEnabled = false, compassEnabled = true, mapToolbarEnabled = false),
-            // Activating long click tracker interceptor
             onMapLongClick = { coordinates ->
                 droppedPinCoordinates = coordinates
                 isPopupVisible = true
             }
         ) {
-            // Static indicators
-            Marker(state = rememberMarkerState(position = LatLng(6.5030, 3.3600)), title = "Pothole", snippet = "4th Avenue & Main")
-            Marker(state = rememberMarkerState(position = LatLng(6.5150, 3.3950)), title = "Faulty Streetlight", snippet = "Central Park Entrance")
-            Marker(state = rememberMarkerState(position = LatLng(6.4900, 3.3700)), title = "Waste Dump", snippet = "Behind Market St")
-
-            // Dynamic dropped marker displays conditionally
             droppedPinCoordinates?.let { pinLocation ->
-                Marker(
-                    state = rememberMarkerState(position = pinLocation),
-                    title = "Selected Location",
-                    snippet = "Long-pressed coordinate position"
-                )
+                Marker(state = MarkerState(position = pinLocation), title = "Selected Location")
             }
         }
 
-        Row(modifier = Modifier.align(Alignment.TopStart).padding(horizontal = 12.dp, vertical = 12.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        Row(modifier = Modifier.align(Alignment.TopStart).padding(12.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             FilterChipPill(label = LocationFilter.ALL.label, selected = selectedFilter == LocationFilter.ALL, onClick = { onFilterSelected(LocationFilter.ALL) })
             FilterChipPill(label = LocationFilter.MINE.label, selected = selectedFilter == LocationFilter.MINE, onClick = { onFilterSelected(LocationFilter.MINE) })
             FilterChipPill(label = LocationFilter.TRENDING.label, selected = selectedFilter == LocationFilter.TRENDING, onClick = { onFilterSelected(LocationFilter.TRENDING) })
         }
 
-        // ---------------------------------------------------------------------
-        // Smooth sliding Context Popup Overlay (Matches Issue Reporting Mockup_2.png)
-        // ---------------------------------------------------------------------
+        // Custom Floating Recenter Button in the Bottom-Left corner
+        if (!isCameraAnchoredToUser && !isPopupVisible) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomStart)
+                    .padding(start = 16.dp, bottom = 24.dp)
+                    .shadow(6.dp, CircleShape)
+                    .clip(CircleShape)
+                    .background(Color.White)
+                    .clickable {
+                        userLocation?.let { currentGPS ->
+                            // 2. Open an asynchronous coroutine lane to slide frames smoothly over time
+                            coroutineScope.launch {
+                                cameraPositionState.animate(
+                                    update = CameraUpdateFactory.newLatLngZoom(currentGPS, 16f),
+                                    durationMs = 800 // Smooth 800ms glide duration curve matching premium map behaviors
+                                )
+                                // Re-anchor user tracking once the camera arrives safely at the destination
+                                isCameraAnchoredToUser = true
+                            }
+                        }
+                    }
+                    .padding(12.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.LocationOn,
+                    contentDescription = "Recenter Map to Me",
+                    tint = Color(0xFF1B263B),
+                    modifier = Modifier.size(24.dp)
+                )
+            }
+        }
+
         AnimatedVisibility(
             visible = isPopupVisible,
             modifier = Modifier.align(Alignment.BottomCenter),
-            enter = slideInVertically(initialOffsetY = { height -> height }) + fadeIn(),
-            exit = slideOutVertically(targetOffsetY = { height -> height }) + fadeOut()
+            enter = slideInVertically(initialOffsetY = { h -> h }) + fadeIn(),
+            exit = slideOutVertically(targetOffsetY = { h -> h }) + fadeOut()
         ) {
             CardModalPopup(
                 onCancelClick = {
                     isPopupVisible = false
-                    droppedPinCoordinates = null // Removes marker flag safely
+                    droppedPinCoordinates = null
                 },
                 onStartClick = {
                     isPopupVisible = false
                     droppedPinCoordinates?.let { location -> onReportConfirmed(location) }
                 }
             )
-        }
-
-        if (!hasLocationPermission && !isPopupVisible) {
-            Box(modifier = Modifier.align(Alignment.Center).clip(RoundedCornerShape(16.dp)).background(Color.White.copy(alpha = 0.92f)).padding(horizontal = 14.dp, vertical = 10.dp)) {
-                Text(text = "Enable location to center map on you", color = Color(0xFF1F2937), fontSize = 13.sp, fontWeight = FontWeight.Medium)
-            }
         }
     }
 }

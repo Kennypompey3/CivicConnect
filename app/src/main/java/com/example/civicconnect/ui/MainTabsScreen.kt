@@ -19,13 +19,16 @@ import com.example.civicconnect.ui.home.HomeScreen
 import com.example.civicconnect.ui.location.LocationScreen
 import com.example.civicconnect.ui.profile.ProfileScreen
 import com.example.civicconnect.ui.report.ReportWizardScreen
+import com.google.android.gms.maps.model.LatLng
 
 @Composable
 fun MainTabsScreen(windowSizeClass: WindowSizeClass) {
-    var selectedTab by remember { mutableIntStateOf(1) } // Start on Location screen for easier testing
+    var selectedTab by remember { mutableIntStateOf(1) }
     var showReportWizard by remember { mutableStateOf(false) }
 
-    // Grabbing access to the device's taptic engine hardware pipeline
+    // Temporary holding variable to safely pass map coordinates between screens
+    var reportLocationTarget by remember { mutableStateOf<LatLng?>(null) }
+
     val hapticFeedback = LocalHapticFeedback.current
 
     val tabs = remember {
@@ -38,27 +41,34 @@ fun MainTabsScreen(windowSizeClass: WindowSizeClass) {
     }
 
     Box(modifier = Modifier.fillMaxSize().background(Color(0xFFF8FAFC))) {
-        // --- BASE LAYER: PRIMARY CONTENT SCREENS ---
+        // --- LAYER 1: BASE PAGES ---
         when (selectedTab) {
             0 -> HomeScreen(windowSizeClass = windowSizeClass, showBottomNav = false)
             1 -> LocationScreen(
                 windowSizeClass = windowSizeClass,
                 showBottomNav = false,
-                onStartReportCreation = { _ -> showReportWizard = true }
+                onStartReportCreation = { coordinates ->
+                    reportLocationTarget = coordinates
+                    showReportWizard = true
+                }
             )
             2 -> PlaceholderScreen(title = "Alerts")
             3 -> ProfileScreen(windowSizeClass = windowSizeClass)
         }
 
-        // --- MIDDLE LAYER: THE GESTURE WIZARD OVERLAY ---
+        // --- LAYER 2: THE WIZARD OVERLAY ---
         if (showReportWizard) {
             ReportWizardScreen(
-                onDismissWizard = { showReportWizard = false },
+                initialLocation = reportLocationTarget,
+                onDismissWizard = {
+                    showReportWizard = false
+                    reportLocationTarget = null
+                },
                 modifier = Modifier.fillMaxSize()
             )
         }
 
-        // --- TOP LAYER: FLOATING NAVBAR FADE SHIELD ---
+        // --- LAYER 3: FLOATING NAVBAR FADE BACKGROUND SHIELD ---
         Box(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
@@ -76,7 +86,7 @@ fun MainTabsScreen(windowSizeClass: WindowSizeClass) {
                 )
         )
 
-        // --- TOP LAYER: OVERLAY INTERACTION NAV PILL ---
+        // --- LAYER 4: FLOATING NAVBAR NAVIGATION PILL ---
         Box(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
@@ -89,14 +99,10 @@ fun MainTabsScreen(windowSizeClass: WindowSizeClass) {
                 items = tabs,
                 selectedIndex = selectedTab,
                 onSelect = { index ->
-                    // 1. Deliver tactile crisp click confirmation haptics to the user's thumb
                     hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
-
-                    // 2. Safely swap the base context tab container value
                     selectedTab = index
-
-                    // 3. Clear out the wizard completely if active, unlocking navigation blocks cleanly
                     showReportWizard = false
+                    reportLocationTarget = null
                 },
                 modifier = Modifier.fillMaxWidth()
             )
