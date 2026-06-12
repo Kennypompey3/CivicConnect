@@ -6,21 +6,11 @@ import android.content.pm.PackageManager
 import android.location.Location
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.LocationOn
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.material3.windowsizeclass.WindowSizeClass
 import androidx.compose.runtime.*
@@ -46,10 +36,9 @@ import com.example.civicconnect.ui.theme.CivicConnectTheme
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
-import kotlinx.coroutines.launch
-import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.maps.android.compose.*
 
+// Re-added the missing Enum definition right here!
 enum class LocationFilter(val label: String) {
     ALL("All Issues"),
     MINE("My Reports"),
@@ -70,8 +59,7 @@ private object LocationLayoutDefaults {
 @Composable
 fun LocationScreen(
     windowSizeClass: WindowSizeClass,
-    showBottomNav: Boolean = true,
-    onStartReportCreation: (LatLng) -> Unit = {} // Event handler linking to our wizard setup
+    showBottomNav: Boolean = true
 ) {
     var selectedTab by remember { mutableIntStateOf(1) }
     var selectedFilter by remember { mutableStateOf(LocationFilter.ALL) }
@@ -103,7 +91,6 @@ fun LocationScreen(
                 LocationMapCardPhase2(
                     selectedFilter = selectedFilter,
                     onFilterSelected = { selectedFilter = it },
-                    onReportConfirmed = onStartReportCreation,
                     modifier = Modifier.fillMaxWidth().weight(1f)
                 )
 
@@ -156,28 +143,21 @@ fun LocationScreen(
 private fun LocationMapCardPhase2(
     selectedFilter: LocationFilter,
     onFilterSelected: (LocationFilter) -> Unit,
-    onReportConfirmed: (LatLng) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
-
-    // 1. Grab our coroutine scope handler to manage background thread frame execution
-    val coroutineScope = rememberCoroutineScope()
     val fusedClient = remember { LocationServices.getFusedLocationProviderClient(context) }
-    val defaultLagos = remember { LatLng(6.5244, 3.3792) }
-
-    var droppedPinCoordinates by remember { mutableStateOf<LatLng?>(null) }
-    var isPopupVisible by remember { mutableStateOf(false) }
-    var userLocation by remember { mutableStateOf<LatLng?>(null) }
-    var isCameraAnchoredToUser by remember { mutableStateOf(true) }
+    val fallbackLatLng = remember { LatLng(6.5244, 3.3792) }
 
     var hasLocationPermission by remember {
-        mutableStateOf(ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED)
+        mutableStateOf(
+            ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
+        )
     }
 
-    val cameraPositionState = rememberCameraPositionState {
-        position = CameraPosition.fromLatLngZoom(defaultLagos, 12f)
-    }
+    var userLocation by remember { mutableStateOf<LatLng?>(null) }
+    var hasCenteredOnUser by remember { mutableStateOf(false) }
+    val cameraPositionState = rememberCameraPositionState { position = CameraPosition.fromLatLngZoom(fallbackLatLng, 12f) }
 
     val permissionLauncher = rememberLauncherForActivityResult(contract = ActivityResultContracts.RequestPermission()) { granted ->
         hasLocationPermission = granted
@@ -192,20 +172,18 @@ private fun LocationMapCardPhase2(
     LaunchedEffect(hasLocationPermission) {
         if (hasLocationPermission) {
             fusedClient.lastLocation.addOnSuccessListener { location: Location? ->
-                location?.let {
-                    val currentLatLng = LatLng(it.latitude, it.longitude)
-                    userLocation = currentLatLng
-                    if (isCameraAnchoredToUser) {
-                        cameraPositionState.position = CameraPosition.fromLatLngZoom(currentLatLng, 16f)
-                    }
+                if (location != null) {
+                    userLocation = LatLng(location.latitude, location.longitude)
                 }
             }
         }
     }
 
-    LaunchedEffect(cameraPositionState.isMoving) {
-        if (cameraPositionState.isMoving && cameraPositionState.cameraMoveStartedReason == CameraMoveStartedReason.GESTURE) {
-            isCameraAnchoredToUser = false
+    LaunchedEffect(userLocation) {
+        val loc = userLocation
+        if (loc != null && !hasCenteredOnUser) {
+            cameraPositionState.position = CameraPosition.fromLatLngZoom(loc, 15f)
+            hasCenteredOnUser = true
         }
     }
 
@@ -214,158 +192,22 @@ private fun LocationMapCardPhase2(
             modifier = Modifier.matchParentSize(),
             cameraPositionState = cameraPositionState,
             properties = MapProperties(isMyLocationEnabled = hasLocationPermission),
-            uiSettings = MapUiSettings(myLocationButtonEnabled = false, zoomControlsEnabled = false, compassEnabled = true, mapToolbarEnabled = false),
-            onMapLongClick = { coordinates ->
-                droppedPinCoordinates = coordinates
-                isPopupVisible = true
-            }
+            uiSettings = MapUiSettings(myLocationButtonEnabled = false, zoomControlsEnabled = false, compassEnabled = true, mapToolbarEnabled = false)
         ) {
-            droppedPinCoordinates?.let { pinLocation ->
-                Marker(state = MarkerState(position = pinLocation), title = "Selected Location")
-            }
+            Marker(state = MarkerState(position = LatLng(6.5030, 3.3600)), title = "Pothole", snippet = "4th Avenue & Main")
+            Marker(state = MarkerState(position = LatLng(6.5150, 3.3950)), title = "Faulty Streetlight", snippet = "Central Park Entrance")
+            Marker(state = MarkerState(position = LatLng(6.4900, 3.3700)), title = "Waste Dump", snippet = "Behind Market St")
         }
 
-        Row(modifier = Modifier.align(Alignment.TopStart).padding(12.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        Row(modifier = Modifier.align(Alignment.TopStart).padding(horizontal = 12.dp, vertical = 12.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             FilterChipPill(label = LocationFilter.ALL.label, selected = selectedFilter == LocationFilter.ALL, onClick = { onFilterSelected(LocationFilter.ALL) })
             FilterChipPill(label = LocationFilter.MINE.label, selected = selectedFilter == LocationFilter.MINE, onClick = { onFilterSelected(LocationFilter.MINE) })
             FilterChipPill(label = LocationFilter.TRENDING.label, selected = selectedFilter == LocationFilter.TRENDING, onClick = { onFilterSelected(LocationFilter.TRENDING) })
         }
 
-        // Custom Floating Recenter Button in the Bottom-Left corner
-        if (!isCameraAnchoredToUser && !isPopupVisible) {
-            Box(
-                modifier = Modifier
-                    .align(Alignment.BottomStart)
-                    .padding(start = 16.dp, bottom = 24.dp)
-                    .shadow(6.dp, CircleShape)
-                    .clip(CircleShape)
-                    .background(Color.White)
-                    .clickable {
-                        userLocation?.let { currentGPS ->
-                            // 2. Open an asynchronous coroutine lane to slide frames smoothly over time
-                            coroutineScope.launch {
-                                cameraPositionState.animate(
-                                    update = CameraUpdateFactory.newLatLngZoom(currentGPS, 16f),
-                                    durationMs = 800 // Smooth 800ms glide duration curve matching premium map behaviors
-                                )
-                                // Re-anchor user tracking once the camera arrives safely at the destination
-                                isCameraAnchoredToUser = true
-                            }
-                        }
-                    }
-                    .padding(12.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Default.LocationOn,
-                    contentDescription = "Recenter Map to Me",
-                    tint = Color(0xFF1B263B),
-                    modifier = Modifier.size(24.dp)
-                )
-            }
-        }
-
-        AnimatedVisibility(
-            visible = isPopupVisible,
-            modifier = Modifier.align(Alignment.BottomCenter),
-            enter = slideInVertically(initialOffsetY = { h -> h }) + fadeIn(),
-            exit = slideOutVertically(targetOffsetY = { h -> h }) + fadeOut()
-        ) {
-            CardModalPopup(
-                onCancelClick = {
-                    isPopupVisible = false
-                    droppedPinCoordinates = null
-                },
-                onStartClick = {
-                    isPopupVisible = false
-                    droppedPinCoordinates?.let { location -> onReportConfirmed(location) }
-                }
-            )
-        }
-    }
-}
-
-// ---------------------------------------------------------------------
-// Popup Card Blueprint Layout Widget
-// ---------------------------------------------------------------------
-@Composable
-private fun CardModalPopup(
-    onCancelClick: () -> Unit,
-    onStartClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(horizontal = 12.dp, vertical = 12.dp) // Relaxed outer boundary margins
-            .clip(RoundedCornerShape(24.dp))
-            .background(Color(0xFF1B263B))
-            .padding(horizontal = 16.dp, vertical = 20.dp), // Optimized inner container walls
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Icon(
-            imageVector = Icons.Default.LocationOn,
-            contentDescription = "Pin Location Drop",
-            tint = Color.White,
-            modifier = Modifier.size(32.dp)
-        )
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        Text(
-            text = "Report Issue Here?",
-            color = Color.White,
-            fontSize = 20.sp,
-            fontWeight = FontWeight.Bold
-        )
-
-        Spacer(modifier = Modifier.height(4.dp))
-
-        Text(
-            text = "Create a new report at this location",
-            color = Color(0xFF90A199),
-            fontSize = 13.sp,
-            fontWeight = FontWeight.Normal
-        )
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp) // Crisp, unified gap between choices
-        ) {
-            // Cancel Action Button
-            Button(
-                onClick = onCancelClick,
-                modifier = Modifier.weight(1f).height(48.dp),
-                shape = RoundedCornerShape(999.dp),
-                contentPadding = PaddingValues(horizontal = 4.dp), // Clears text suffocation
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFC9CBD6))
-            ) {
-                Text(
-                    text = "Cancel",
-                    color = Color(0xFF1B263B),
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 14.sp,
-                    maxLines = 1
-                )
-            }
-
-            // Confirm / Start Action Button
-            Button(
-                onClick = onStartClick,
-                modifier = Modifier.weight(1f).height(48.dp),
-                shape = RoundedCornerShape(999.dp),
-                contentPadding = PaddingValues(horizontal = 4.dp), // Gives the phrase room to breathe
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF415A77))
-            ) {
-                Text(
-                    text = "Start Report",
-                    color = Color.White,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 14.sp,
-                    maxLines = 1
-                )
+        if (!hasLocationPermission) {
+            Box(modifier = Modifier.align(Alignment.Center).clip(RoundedCornerShape(16.dp)).background(Color.White.copy(alpha = 0.92f)).padding(horizontal = 14.dp, vertical = 10.dp)) {
+                Text(text = "Enable location to center map on you", color = Color(0xFF1F2937), fontSize = 13.sp, fontWeight = FontWeight.Medium)
             }
         }
     }
