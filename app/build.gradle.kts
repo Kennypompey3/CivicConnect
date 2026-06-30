@@ -60,6 +60,11 @@ dependencies {
 
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.10.0")
 
+    implementation("com.google.firebase:firebase-auth-ktx:23.2.0")
+
+    // 🚀 Google Play Services Auth module for the Google Sign-In button interaction
+    implementation("com.google.android.gms:play-services-auth:21.3.0")
+
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

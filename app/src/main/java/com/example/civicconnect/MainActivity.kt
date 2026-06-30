@@ -4,12 +4,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue // ✅ Fixed: Resolves property delegate getValue error
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.*
 import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
 import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
 import com.example.civicconnect.data.UserSessionManager
@@ -29,13 +24,16 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
+        // Spin up preference links before evaluating layout composition states
+        UserSessionManager.initialize(applicationContext)
+
         setContent {
             CivicConnectTheme {
                 val windowSizeClass = calculateWindowSizeClass(this)
-                val currentUserState by UserSessionManager.currentUser.collectAsState()
+                val isOnboarded by UserSessionManager.isOnboarded.collectAsState()
                 var currentStage by remember { mutableStateOf(OnboardingStage.CAROUSEL) }
 
-                if (currentUserState == null) {
+                if (!isOnboarded) {
                     when (currentStage) {
                         OnboardingStage.CAROUSEL -> {
                             OnboardingCarouselScreen(
@@ -43,7 +41,11 @@ class MainActivity : ComponentActivity() {
                             )
                         }
                         OnboardingStage.LOGIN -> {
-                            OnboardingLoginScreen(onLoginSuccess = {})
+                            OnboardingLoginScreen(
+                                onLoginSuccess = {
+                                    // Global storage triggers state recomposition automatically here
+                                }
+                            )
                         }
                     }
                 } else {
