@@ -1,4 +1,4 @@
-package com.example.civicconnect.ui.theme
+package com.kennypompey3.civicconnect.ui.theme
 
 import android.app.Activity
 import android.os.Build

@@ -1,4 +1,4 @@
-package com.example.civicconnect.ui.home
+package com.kennypompey3.civicconnect.ui.home
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -26,12 +26,12 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
 import androidx.compose.material3.windowsizeclass.WindowSizeClass as M3WindowSizeClass
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.civicconnect.R
-import com.example.civicconnect.Issue
-import com.example.civicconnect.sampleIssuesExpanded
-import com.example.civicconnect.ui.components.FloatingPillBottomNavBar
-import com.example.civicconnect.ui.components.PillNavItem
-import com.example.civicconnect.ui.theme.CivicConnectTheme
+import com.kennypompey3.civicconnect.R
+import com.kennypompey3.civicconnect.Issue
+import com.kennypompey3.civicconnect.sampleIssuesExpanded
+import com.kennypompey3.civicconnect.ui.components.FloatingPillBottomNavBar
+import com.kennypompey3.civicconnect.ui.components.PillNavItem
+import com.kennypompey3.civicconnect.ui.theme.CivicConnectTheme
 
 @Composable
 fun HomeScreen(

@@ -1,4 +1,4 @@
-package com.example.civicconnect.ui.components
+package com.kennypompey3.civicconnect.ui.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -14,7 +14,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.civicconnect.data.UserSessionManager
+import com.kennypompey3.civicconnect.data.UserSessionManager
 
 @Composable
 fun CivicTopHeader(

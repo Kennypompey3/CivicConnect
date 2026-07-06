@@ -1,4 +1,4 @@
-package com.example.civicconnect.ui.theme
+package com.kennypompey3.civicconnect.ui.theme
 
 import androidx.compose.ui.graphics.Color
 

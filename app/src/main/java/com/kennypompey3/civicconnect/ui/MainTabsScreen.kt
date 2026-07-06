@@ -1,4 +1,4 @@
-package com.example.civicconnect.ui
+package com.kennypompey3.civicconnect.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -12,13 +12,13 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.unit.dp
 import androidx.compose.material3.Text
-import com.example.civicconnect.R
-import com.example.civicconnect.ui.components.FloatingPillBottomNavBar
-import com.example.civicconnect.ui.components.PillNavItem
-import com.example.civicconnect.ui.home.HomeScreen
-import com.example.civicconnect.ui.location.LocationScreen
-import com.example.civicconnect.ui.profile.ProfileScreen
-import com.example.civicconnect.ui.report.ReportWizardScreen
+import com.kennypompey3.civicconnect.R
+import com.kennypompey3.civicconnect.ui.components.FloatingPillBottomNavBar
+import com.kennypompey3.civicconnect.ui.components.PillNavItem
+import com.kennypompey3.civicconnect.ui.home.HomeScreen
+import com.kennypompey3.civicconnect.ui.location.LocationScreen
+import com.kennypompey3.civicconnect.ui.profile.ProfileScreen
+import com.kennypompey3.civicconnect.ui.report.ReportWizardScreen
 import com.google.android.gms.maps.model.LatLng
 
 @Composable

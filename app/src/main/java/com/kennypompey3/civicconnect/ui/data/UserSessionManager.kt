@@ -1,4 +1,4 @@
-package com.example.civicconnect.data
+package com.kennypompey3.civicconnect.data
 
 import android.content.Context
 import android.content.SharedPreferences

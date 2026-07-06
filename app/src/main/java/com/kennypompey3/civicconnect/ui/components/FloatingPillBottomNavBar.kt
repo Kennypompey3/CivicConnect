@@ -1,4 +1,4 @@
-package com.example.civicconnect.ui.components
+package com.kennypompey3.civicconnect.ui.components
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize

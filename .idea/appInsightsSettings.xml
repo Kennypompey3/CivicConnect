@@ -8,10 +8,10 @@
             <InsightsFilterSettings>
               <option name="connection">
                 <ConnectionSetting>
-                  <option name="appId" value="PLACEHOLDER" />
-                  <option name="mobileSdkAppId" value="" />
-                  <option name="projectId" value="" />
-                  <option name="projectNumber" value="" />
+                  <option name="appId" value="com.kennypompey3.civicconnect" />
+                  <option name="mobileSdkAppId" value="1:231845709874:android:5ebc0b3568a1ac9a65142b" />
+                  <option name="projectId" value="civicconnect-37d09" />
+                  <option name="projectNumber" value="231845709874" />
                 </ConnectionSetting>
               </option>
               <option name="signal" value="SIGNAL_UNSPECIFIED" />

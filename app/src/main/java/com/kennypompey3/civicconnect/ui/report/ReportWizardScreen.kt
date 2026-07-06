@@ -1,4 +1,4 @@
-package com.example.civicconnect.ui.report
+package com.kennypompey3.civicconnect.ui.report
 
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -35,7 +35,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.civicconnect.ui.theme.CivicConnectTheme
+import com.kennypompey3.civicconnect.ui.theme.CivicConnectTheme
 import com.google.android.gms.maps.model.LatLng
 
 @Composable

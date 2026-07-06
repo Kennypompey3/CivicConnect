@@ -1,4 +1,4 @@
-package com.example.civicconnect
+package com.kennypompey3.civicconnect
 
 import org.junit.Test
 

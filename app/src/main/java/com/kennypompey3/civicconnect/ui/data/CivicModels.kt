@@ -1,4 +1,4 @@
-package com.example.civicconnect
+package com.kennypompey3.civicconnect
 
 import androidx.compose.ui.graphics.Color
 

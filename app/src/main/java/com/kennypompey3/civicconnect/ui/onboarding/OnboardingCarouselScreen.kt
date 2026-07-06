@@ -1,4 +1,4 @@
-package com.example.civicconnect.ui.onboarding
+package com.kennypompey3.civicconnect.ui.onboarding
 
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.*

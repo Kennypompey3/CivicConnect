@@ -1,4 +1,4 @@
-package com.example.civicconnect
+package com.kennypompey3.civicconnect
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -7,11 +7,11 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.*
 import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
 import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
-import com.example.civicconnect.data.UserSessionManager
-import com.example.civicconnect.ui.MainTabsScreen
-import com.example.civicconnect.ui.onboarding.OnboardingCarouselScreen
-import com.example.civicconnect.ui.onboarding.OnboardingLoginScreen
-import com.example.civicconnect.ui.theme.CivicConnectTheme
+import com.kennypompey3.civicconnect.data.UserSessionManager
+import com.kennypompey3.civicconnect.ui.MainTabsScreen
+import com.kennypompey3.civicconnect.ui.onboarding.OnboardingCarouselScreen
+import com.kennypompey3.civicconnect.ui.onboarding.OnboardingLoginScreen
+import com.kennypompey3.civicconnect.ui.theme.CivicConnectTheme
 
 enum class OnboardingStage {
     CAROUSEL,

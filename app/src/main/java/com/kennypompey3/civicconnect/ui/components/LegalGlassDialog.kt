@@ -1,4 +1,4 @@
-package com.example.civicconnect.ui.components
+package com.kennypompey3.civicconnect.ui.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -22,7 +22,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
-import com.example.civicconnect.R
+import com.kennypompey3.civicconnect.R
 
 enum class LegalContentType { TERMS, PRIVACY }
 

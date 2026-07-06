@@ -1,4 +1,4 @@
-package com.example.civicconnect.ui.theme
+package com.kennypompey3.civicconnect.ui.theme
 
 import androidx.compose.material3.Typography
 import androidx.compose.ui.text.TextStyle

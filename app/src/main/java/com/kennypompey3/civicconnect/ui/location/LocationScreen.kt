@@ -1,4 +1,4 @@
-package com.example.civicconnect.ui.location
+package com.kennypompey3.civicconnect.ui.location
 
 import android.Manifest
 import android.annotation.SuppressLint
@@ -34,11 +34,11 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
-import com.example.civicconnect.R
-import com.example.civicconnect.ui.components.CivicTopHeader
-import com.example.civicconnect.ui.components.FloatingPillBottomNavBar
-import com.example.civicconnect.ui.components.PillNavItem
-import com.example.civicconnect.ui.theme.CivicConnectTheme
+import com.kennypompey3.civicconnect.R
+import com.kennypompey3.civicconnect.ui.components.CivicTopHeader
+import com.kennypompey3.civicconnect.ui.components.FloatingPillBottomNavBar
+import com.kennypompey3.civicconnect.ui.components.PillNavItem
+import com.kennypompey3.civicconnect.ui.theme.CivicConnectTheme
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.model.CameraPosition

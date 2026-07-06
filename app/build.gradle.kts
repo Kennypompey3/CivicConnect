@@ -1,16 +1,17 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.google.services)
 }
 
 android {
-    namespace = "com.example.civicconnect"
+    namespace = "com.kennypompey3.civicconnect"
     compileSdk {
         version = release(36)
     }
 
     defaultConfig {
-        applicationId = "com.example.civicconnect"
+        applicationId = "com.kennypompey3.civicconnect"
         minSdk = 33
         targetSdk = 36
         versionCode = 1
@@ -46,6 +47,9 @@ dependencies {
     implementation(libs.androidx.compose.ui.graphics)
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.auth)
+    implementation(libs.firebase.firestore)
 
     implementation("androidx.compose.material3:material3:1.4.0")
     implementation("androidx.compose.material3:material3-window-size-class:1.4.0")
@@ -64,6 +68,10 @@ dependencies {
 
     // 🚀 Google Play Services Auth module for the Google Sign-In button interaction
     implementation("com.google.android.gms:play-services-auth:21.3.0")
+
+    implementation("androidx.credentials:credentials:1.6.0")
+    implementation("androidx.credentials:credentials-play-services-auth:1.6.0")
+    implementation("com.google.android.libraries.identity.googleid:googleid:1.2.0")
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

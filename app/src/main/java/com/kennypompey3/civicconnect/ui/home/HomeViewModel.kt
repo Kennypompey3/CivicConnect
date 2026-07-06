@@ -1,8 +1,8 @@
-package com.example.civicconnect.ui.home
+package com.kennypompey3.civicconnect.ui.home
 
 import androidx.lifecycle.ViewModel
-import com.example.civicconnect.Issue
-import com.example.civicconnect.sampleIssues
+import com.kennypompey3.civicconnect.Issue
+import com.kennypompey3.civicconnect.sampleIssues
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow

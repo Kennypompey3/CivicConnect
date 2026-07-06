@@ -1,6 +1,7 @@
 <resources>
     <string name="app_name">CivicConnect</string>
     <string name="google_maps_key">AIzaSyBuyfO3JlqoRXd592yjiS0Ck21FKd_mAZA</string>
+    <string name="default_web_client_id">231845709874-niak59n3sp4jr05nmkkcv8gmijo53ec5.apps.googleusercontent.com</string>
 
     <string name="greeting_morning">Good morning, %1$s</string>
     <string name="greeting_afternoon">Good afternoon, %1$s</string>
@@ -13,4 +14,10 @@
     <string name="category_waste">Waste Dump</string>
     <string name="category_danger">Danger</string>
     <string name="category_other">Other</string>
+
+    <string name="legal_terms_title">Terms of Service</string>
+    <string name="legal_privacy_title">Privacy Policy</string>
+    <string name="legal_close">Close</string>
+    <string name="legal_terms_body">1. DISCLAIMER: CivicConnect is a private independent platform and does not represent any official government or municipal body.\n\n2. CONDUCT: Users are responsible for ensuring uploaded images contain no private faces or license plates.</string>
+    <string name="legal_privacy_body">1. LOCATION: This app collects foreground location data exclusively while open to place issue markers.\n\n2. RETENTION: Identifiers are encrypted securely under strict privacy compliance laws.</string>
 </resources>

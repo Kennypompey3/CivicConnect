@@ -1,8 +1,8 @@
-package com.example.civicconnect.ui.report
+package com.kennypompey3.civicconnect.ui.report
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.civicconnect.R
+import com.kennypompey3.civicconnect.R
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
