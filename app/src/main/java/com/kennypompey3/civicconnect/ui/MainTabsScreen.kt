@@ -19,6 +19,7 @@ import com.kennypompey3.civicconnect.ui.home.HomeScreen
 import com.kennypompey3.civicconnect.ui.location.LocationScreen
 import com.kennypompey3.civicconnect.ui.profile.ProfileScreen
 import com.kennypompey3.civicconnect.ui.report.ReportWizardScreen
+import com.kennypompey3.civicconnect.ui.alerts.AlertsScreen
 import com.google.android.gms.maps.model.LatLng
 
 @Composable
@@ -52,7 +53,7 @@ fun MainTabsScreen(windowSizeClass: WindowSizeClass) {
                     showReportWizard = true
                 }
             )
-            2 -> PlaceholderScreen(title = "Alerts")
+            2 -> AlertsScreen(userName = "Sarah")
             3 -> ProfileScreen(windowSizeClass = windowSizeClass)
         }
 

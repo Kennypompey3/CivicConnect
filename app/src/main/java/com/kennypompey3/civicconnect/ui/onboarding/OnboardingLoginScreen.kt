@@ -2,17 +2,12 @@ package com.kennypompey3.civicconnect.ui.onboarding
 
 import android.content.Context
 import android.widget.Toast
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.Crossfade
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.foundation.Canvas
+import androidx.compose.animation.*
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
@@ -29,14 +24,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.ClipOp
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -47,19 +36,18 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.credentials.ClearCredentialStateRequest
 import androidx.credentials.CredentialManager
 import androidx.credentials.GetCredentialRequest
 import androidx.credentials.exceptions.GetCredentialException
-import com.kennypompey3.civicconnect.R
-import com.kennypompey3.civicconnect.data.UserSessionManager
-import com.kennypompey3.civicconnect.ui.components.LegalContentType
-import com.kennypompey3.civicconnect.ui.components.LegalGlassDialog
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.GoogleAuthProvider
 import com.google.firebase.firestore.FirebaseFirestore
+import com.kennypompey3.civicconnect.R
+import com.kennypompey3.civicconnect.data.UserSessionManager
+import com.kennypompey3.civicconnect.ui.components.LegalContentType
+import com.kennypompey3.civicconnect.ui.components.LegalGlassDialog
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
@@ -101,9 +89,6 @@ fun OnboardingLoginScreen(onLoginSuccess: () -> Unit) {
     }
 
     val backgroundBlurAlpha = if (activeLegalDialog != null) 14.dp else 0.dp
-    val dynamicCardInternalPadding = if (authMode == AuthMode.SIGN_IN) 24.dp else 16.dp
-    val dynamicInterFieldSpacing = if (authMode == AuthMode.SIGN_IN) 18.dp else 8.dp
-    val dynamicLabelGapSpacing = if (authMode == AuthMode.SIGN_IN) 6.dp else 3.dp
 
     Box(modifier = Modifier.fillMaxSize()) {
         Column(
@@ -215,242 +200,270 @@ fun OnboardingLoginScreen(onLoginSuccess: () -> Unit) {
                         ),
                         shape = RoundedCornerShape(20.dp)
                     )
-                    .padding(dynamicCardInternalPadding),
+                    // 🚀 FLUID HEIGHT: Animates physical card resizing values seamlessly when inner objects layout morphs
+                    .animateContentSize(animationSpec = tween(durationMillis = 350)),
                 horizontalAlignment = Alignment.Start
             ) {
-                Text(text = if (authMode == AuthMode.SIGN_UP) "Create an Account" else "Welcome Back", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0D1B2A))
-                Text(
-                    text = if (authMode == AuthMode.SIGN_UP) "Join your community to start reporting issues." else "Sign in to track existing local neighborhood reports.",
-                    fontSize = 12.sp, color = Color(0xFF778DA9), modifier = Modifier.padding(top = 2.dp, bottom = 12.dp)
-                )
+                // 🚀 SCREEN STATE TRANSITION ORCHESTRATOR: Crossfades elements and shifts height parameters smoothly
+                AnimatedContent(
+                    targetState = authMode,
+                    transitionSpec = {
+                        fadeIn(animationSpec = tween(durationMillis = 220, delayMillis = 80)) togetherWith
+                                fadeOut(animationSpec = tween(durationMillis = 140)) using
+                                SizeTransform(clip = false)
+                    },
+                    label = "AuthFormStateTransition"
+                ) { currentMode ->
 
-                // --- TEXT BOX FIELDS MAP ---
-                if (authMode == AuthMode.SIGN_UP) {
-                    Text(text = "First Name", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0D1B2A))
-                    Spacer(modifier = Modifier.height(dynamicLabelGapSpacing))
-                    CivicCustomTextField(
-                        value = firstName, onValueChange = { firstName = it },
-                        placeholder = "John",
-                        leadingIcon = { Icon(Icons.Default.Person, null, tint = Color(0xFF415A77), modifier = Modifier.size(16.dp)) },
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    Spacer(modifier = Modifier.height(dynamicInterFieldSpacing))
+                    // Structural layout paddings calculated locally per framework mode state
+                    val cardPadding = if (currentMode == AuthMode.SIGN_IN) 24.dp else 16.dp
+                    val fieldGap = if (currentMode == AuthMode.SIGN_IN) 18.dp else 8.dp
+                    val labelGap = if (currentMode == AuthMode.SIGN_IN) 6.dp else 3.dp
 
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text(text = "Last Name", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0D1B2A))
-                        AnimatedVisibility(visible = isLastNameInvalid, enter = fadeIn(), exit = fadeOut()) {
-                            Text(text = "Invalid Characters", color = Color(0xFFE63946), fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                        }
-                    }
-                    Spacer(modifier = Modifier.height(dynamicLabelGapSpacing))
-                    CivicCustomTextField(
-                        value = lastName, onValueChange = { lastName = it },
-                        placeholder = "Doe",
-                        leadingIcon = { Icon(Icons.Default.Person, null, tint = Color(0xFF415A77), modifier = Modifier.size(16.dp)) },
-                        isError = isLastNameInvalid,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    Spacer(modifier = Modifier.height(dynamicInterFieldSpacing))
-                }
-
-                Text(text = "Email", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0D1B2A))
-                Spacer(modifier = Modifier.height(dynamicLabelGapSpacing))
-                CivicCustomTextField(
-                    value = email, onValueChange = { email = it },
-                    placeholder = "resident@civicconnect.app",
-                    leadingIcon = { Icon(Icons.Default.Email, null, tint = Color(0xFF415A77), modifier = Modifier.size(16.dp)) },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-                    modifier = Modifier.fillMaxWidth()
-                )
-                Spacer(modifier = Modifier.height(dynamicInterFieldSpacing))
-
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Text(text = "Password", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0D1B2A))
-                    if (authMode == AuthMode.SIGN_IN) {
-                        Text(text = "forgot password?", color = Color(0xFF50BB6E), fontSize = 12.sp, modifier = Modifier.clickable { })
-                    }
-                }
-                Spacer(modifier = Modifier.height(dynamicLabelGapSpacing))
-                CivicCustomTextField(
-                    value = password, onValueChange = { password = it },
-                    placeholder = "**********",
-                    leadingIcon = { Icon(Icons.Default.Key, null, tint = Color(0xFF415A77), modifier = Modifier.size(16.dp)) },
-                    visualTransformation = PasswordVisualTransformation(),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                if (authMode == AuthMode.SIGN_UP) {
-                    Spacer(modifier = Modifier.height(dynamicInterFieldSpacing))
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text(text = "Confirm Password", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0D1B2A))
-                        AnimatedVisibility(visible = isPasswordMismatched, enter = fadeIn(), exit = fadeOut()) {
-                            Text(text = "Password does not match", color = Color(0xFFE63946), fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                        }
-                    }
-                    Spacer(modifier = Modifier.height(dynamicLabelGapSpacing))
-                    CivicCustomTextField(
-                        value = confirmPassword, onValueChange = { confirmPassword = it },
-                        placeholder = "**********",
-                        leadingIcon = { Icon(Icons.Default.Key, null, tint = Color(0xFF415A77), modifier = Modifier.size(16.dp)) },
-                        visualTransformation = PasswordVisualTransformation(),
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                        isError = isPasswordMismatched,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
-
-                // --- 4. LEGAL DISCLOSURE ROW ---
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(vertical = 10.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Checkbox(
-                        checked = agreedToPolicies, onCheckedChange = { agreedToPolicies = it ?: false },
-                        colors = CheckboxDefaults.colors(checkedColor = Color(0xFF0D1B2A)),
-                        modifier = Modifier.size(32.dp)
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Row(modifier = Modifier.weight(1f)) {
-                        Text(text = "I agree to the ", fontSize = 12.sp, color = Color(0xFF1B263B))
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(cardPadding),
+                        horizontalAlignment = Alignment.Start
+                    ) {
                         Text(
-                            text = "Terms", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0D1B2A),
-                            modifier = Modifier.clickable { activeLegalDialog = LegalContentType.TERMS }
+                            text = if (currentMode == AuthMode.SIGN_UP) "Create an Account" else "Welcome Back",
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF0D1B2A)
                         )
-                        Text(text = " and ", fontSize = 12.sp, color = Color(0xFF1B263B))
                         Text(
-                            text = "Privacy Policy", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0D1B2A),
-                            modifier = Modifier.clickable { activeLegalDialog = LegalContentType.PRIVACY }
+                            text = if (currentMode == AuthMode.SIGN_UP) "Join your community to start reporting issues." else "Sign in to track existing local neighborhood reports.",
+                            fontSize = 12.sp,
+                            color = Color(0xFF778DA9),
+                            modifier = Modifier.padding(top = 2.dp, bottom = 12.dp)
                         )
-                    }
-                }
 
-                // --- 5. ACTION EXECUTION & PRODUCTION DATABASE SYNC HUBS ---
-                Row(
-                    modifier = Modifier.fillMaxWidth().height(46.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Button(
-                        onClick = {
-                            if (isFormInputValid && !isBackendProcessing) {
-                                isBackendProcessing = true
-                                if (firebaseAuth != null && firestore != null) {
-                                    if (authMode == AuthMode.SIGN_UP) {
-                                        firebaseAuth.createUserWithEmailAndPassword(email.trim(), password)
-                                            .addOnSuccessListener { authResult ->
-                                                val uid = authResult.user?.uid ?: ""
-                                                // 🚀 DATABASE SYNC: Writes structured user attributes directly into your production schema
-                                                val userProfile = hashMapOf(
-                                                    "uid" to uid,
-                                                    "firstName" to firstName.trim(),
-                                                    "lastName" to lastName.trim(),
-                                                    "email" to email.trim(),
-                                                    "role" to selectedRole.name,
-                                                    "createdAt" to com.google.firebase.Timestamp.now()
-                                                )
-                                                firestore.collection("users").document(uid).set(userProfile)
-                                                    .addOnSuccessListener {
-                                                        UserSessionManager.saveSession(firstName.trim())
-                                                        isBackendProcessing = false
-                                                        onLoginSuccess()
-                                                    }
-                                                    .addOnFailureListener { e ->
-                                                        isBackendProcessing = false
-                                                        Toast.makeText(context, "Profile Creation Failed: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
-                                                    }
-                                            }
-                                            .addOnFailureListener { ex ->
-                                                isBackendProcessing = false
-                                                Toast.makeText(context, "Auth Error: ${ex.localizedMessage}", Toast.LENGTH_LONG).show()
-                                            }
-                                    } else {
-                                        // Email/Password Sign-In Pipeline
-                                        firebaseAuth.signInWithEmailAndPassword(email.trim(), password)
-                                            .addOnSuccessListener { authResult ->
-                                                val uid = authResult.user?.uid ?: ""
-                                                firestore.collection("users").document(uid).get()
-                                                    .addOnSuccessListener { snapshot ->
-                                                        val name = snapshot.getString("firstName") ?: "User"
-                                                        UserSessionManager.saveSession(name)
-                                                        isBackendProcessing = false
-                                                        onLoginSuccess()
-                                                    }
-                                                    .addOnFailureListener {
-                                                        UserSessionManager.saveSession("User Profile")
-                                                        isBackendProcessing = false
-                                                        onLoginSuccess()
-                                                    }
-                                            }
-                                            .addOnFailureListener { ex ->
-                                                isBackendProcessing = false
-                                                Toast.makeText(context, "Failed: ${ex.localizedMessage}", Toast.LENGTH_LONG).show()
-                                            }
-                                    }
-                                } else {
-                                    // Simulation Fallback Architecture
-                                    val resolvedDisplayName = if (authMode == AuthMode.SIGN_UP) firstName.trim() else "John"
-                                    UserSessionManager.saveSession(resolvedDisplayName)
-                                    isBackendProcessing = false
-                                    onLoginSuccess()
+                        // --- TEXT BOX FIELDS MAP ---
+                        if (currentMode == AuthMode.SIGN_UP) {
+                            Text(text = "First Name", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0D1B2A))
+                            Spacer(modifier = Modifier.height(labelGap))
+                            CivicCustomTextField(
+                                value = firstName, onValueChange = { firstName = it },
+                                placeholder = "John",
+                                leadingIcon = { Icon(Icons.Default.Person, null, tint = Color(0xFF415A77), modifier = Modifier.size(16.dp)) },
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                            Spacer(modifier = Modifier.height(fieldGap))
+
+                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                Text(text = "Last Name", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0D1B2A))
+                                AnimatedVisibility(visible = isLastNameInvalid, enter = fadeIn(), exit = fadeOut()) {
+                                    Text(text = "Invalid Characters", color = Color(0xFFE63946), fontSize = 11.sp, fontWeight = FontWeight.Bold)
                                 }
                             }
-                        },
-                        enabled = isFormInputValid && !isBackendProcessing,
-                        modifier = Modifier.weight(1.5f).fillMaxHeight().shadow(4.dp, RoundedCornerShape(999.dp)),
-                        shape = RoundedCornerShape(999.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0D1B2A), disabledContainerColor = Color(0xFFE0E1DD))
-                    ) {
-                        if (isBackendProcessing) {
-                            CircularProgressIndicator(modifier = Modifier.size(18.dp), color = Color.White, strokeWidth = 2.dp)
-                        } else {
-                            Text(text = if (authMode == AuthMode.SIGN_UP) "Create Account" else "Sign In", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                            Spacer(modifier = Modifier.height(labelGap))
+                            CivicCustomTextField(
+                                value = lastName, onValueChange = { lastName = it },
+                                placeholder = "Doe",
+                                leadingIcon = { Icon(Icons.Default.Person, null, tint = Color(0xFF415A77), modifier = Modifier.size(16.dp)) },
+                                isError = isLastNameInvalid,
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                            Spacer(modifier = Modifier.height(fieldGap))
                         }
-                    }
 
-                    Box(modifier = Modifier.width(1.dp).fillMaxHeight(0.4f).background(Color(0xFFE0E1DD)))
+                        Text(text = "Email", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0D1B2A))
+                        Spacer(modifier = Modifier.height(labelGap))
+                        CivicCustomTextField(
+                            value = email, onValueChange = { email = it },
+                            placeholder = "resident@civicconnect.app",
+                            leadingIcon = { Icon(Icons.Default.Email, null, tint = Color(0xFF415A77), modifier = Modifier.size(16.dp)) },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Spacer(modifier = Modifier.height(fieldGap))
 
-                    // --- 🚀 PRODUCTION GOOGLE IDENTITY NODE (CREDENTIAL MANAGER API) ---
-                    Row(
-                        modifier = Modifier
-                            .weight(1f)
-                            .fillMaxHeight()
-                            .clip(RoundedCornerShape(999.dp))
-                            .background(Color.White)
-                            .border(1.dp, Color(0xFFE0E1DD), RoundedCornerShape(999.dp))
-                            .clickable(enabled = !isBackendProcessing && agreedToPolicies) {
-                                triggerGoogleIdentityPipeline(
-                                    context = context,
-                                    coroutineScope = coroutineScope,
-                                    credentialManager = credentialManager,
-                                    firebaseAuth = firebaseAuth,
-                                    firestore = firestore,
-                                    selectedRole = selectedRole,
-                                    onProcessingStateChange = { isBackendProcessing = it },
-                                    onSuccess = onLoginSuccess
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text(text = "Password", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0D1B2A))
+                            if (currentMode == AuthMode.SIGN_IN) {
+                                Text(text = "forgot password?", color = Color(0xFF50BB6E), fontSize = 12.sp, modifier = Modifier.clickable { })
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(labelGap))
+                        CivicCustomTextField(
+                            value = password, onValueChange = { password = it },
+                            placeholder = "**********",
+                            leadingIcon = { Icon(Icons.Default.Key, null, tint = Color(0xFF415A77), modifier = Modifier.size(16.dp)) },
+                            visualTransformation = PasswordVisualTransformation(),
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                            modifier = Modifier.fillMaxWidth()
+                        )
+
+                        if (currentMode == AuthMode.SIGN_UP) {
+                            Spacer(modifier = Modifier.height(fieldGap))
+                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                Text(text = "Confirm Password", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0D1B2A))
+                                AnimatedVisibility(visible = isPasswordMismatched, enter = fadeIn(), exit = fadeOut()) {
+                                    Text(text = "Password does not match", color = Color(0xFFE63946), fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                }
+                            }
+                            Spacer(modifier = Modifier.height(labelGap))
+                            CivicCustomTextField(
+                                value = confirmPassword, onValueChange = { confirmPassword = it },
+                                placeholder = "**********",
+                                leadingIcon = { Icon(Icons.Default.Key, null, tint = Color(0xFF415A77), modifier = Modifier.size(16.dp)) },
+                                visualTransformation = PasswordVisualTransformation(),
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                                isError = isPasswordMismatched,
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        }
+
+                        // --- 4. LEGAL DISCLOSURE ROW ---
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(vertical = 10.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Checkbox(
+                                checked = agreedToPolicies, onCheckedChange = { agreedToPolicies = it ?: false },
+                                colors = CheckboxDefaults.colors(checkedColor = Color(0xFF0D1B2A)),
+                                modifier = Modifier.size(32.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Row(modifier = Modifier.weight(1f)) {
+                                Text(text = "I agree to the ", fontSize = 12.sp, color = Color(0xFF1B263B))
+                                Text(
+                                    text = "Terms", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0D1B2A),
+                                    modifier = Modifier.clickable { activeLegalDialog = LegalContentType.TERMS }
                                 )
-                            },
-                        horizontalArrangement = Arrangement.Center,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        // 🎨 COMPOSER-VECTOR DRAWN AUTHENTIC GOOGLE LOGO
-                        GoogleLogo(modifier = Modifier.size(16.dp))
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(text = "Google", color = Color(0xFF0D1B2A), fontSize = 13.sp, fontWeight = FontWeight.Bold)
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(14.dp))
-
-                // --- 6. FOOTER SWITCH TOGGLE ---
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
-                    Text(text = if (authMode == AuthMode.SIGN_UP) "Already have an account? " else "Don't have an account yet? ", fontSize = 12.sp, color = Color(0xFF778DA9))
-                    Text(
-                        text = if (authMode == AuthMode.SIGN_UP) "Sign In" else "Sign Up", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0D1B2A),
-                        modifier = Modifier.clickable {
-                            authMode = if (authMode == AuthMode.SIGN_UP) AuthMode.SIGN_IN else AuthMode.SIGN_UP
+                                Text(text = " and ", fontSize = 12.sp, color = Color(0xFF1B263B))
+                                Text(
+                                    text = "Privacy Policy", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0D1B2A),
+                                    modifier = Modifier.clickable { activeLegalDialog = LegalContentType.PRIVACY }
+                                )
+                            }
                         }
-                    )
+
+                        // --- 5. MAIN ACTION BUTTON & STANDALONE SVG GOOGLE ICON NODE ---
+                        Row(
+                            modifier = Modifier.fillMaxWidth().height(46.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            Button(
+                                onClick = {
+                                    if (isFormInputValid && !isBackendProcessing) {
+                                        isBackendProcessing = true
+                                        if (firebaseAuth != null && firestore != null) {
+                                            if (currentMode == AuthMode.SIGN_UP) {
+                                                firebaseAuth.createUserWithEmailAndPassword(email.trim(), password)
+                                                    .addOnSuccessListener { authResult ->
+                                                        val uid = authResult.user?.uid ?: ""
+                                                        val userProfile = hashMapOf(
+                                                            "uid" to uid,
+                                                            "firstName" to firstName.trim(),
+                                                            "lastName" to lastName.trim(),
+                                                            "email" to email.trim(),
+                                                            "role" to selectedRole.name,
+                                                            "createdAt" to com.google.firebase.Timestamp.now()
+                                                        )
+                                                        firestore.collection("users").document(uid).set(userProfile)
+                                                            .addOnSuccessListener {
+                                                                UserSessionManager.saveSession(firstName.trim())
+                                                                isBackendProcessing = false
+                                                                onLoginSuccess()
+                                                            }
+                                                            .addOnFailureListener { e ->
+                                                                isBackendProcessing = false
+                                                                Toast.makeText(context, "Profile Creation Failed: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
+                                                            }
+                                                    }
+                                                    .addOnFailureListener { ex ->
+                                                        isBackendProcessing = false
+                                                        Toast.makeText(context, "Auth Error: ${ex.localizedMessage}", Toast.LENGTH_LONG).show()
+                                                    }
+                                            } else {
+                                                firebaseAuth.signInWithEmailAndPassword(email.trim(), password)
+                                                    .addOnSuccessListener { authResult ->
+                                                        val uid = authResult.user?.uid ?: ""
+                                                        firestore.collection("users").document(uid).get()
+                                                            .addOnSuccessListener { snapshot ->
+                                                                val name = snapshot.getString("firstName") ?: "User"
+                                                                UserSessionManager.saveSession(name)
+                                                                isBackendProcessing = false
+                                                                onLoginSuccess()
+                                                            }
+                                                            .addOnFailureListener {
+                                                                UserSessionManager.saveSession("User Profile")
+                                                                isBackendProcessing = false
+                                                                onLoginSuccess()
+                                                            }
+                                                    }
+                                                    .addOnFailureListener { ex ->
+                                                        isBackendProcessing = false
+                                                        Toast.makeText(context, "Failed: ${ex.localizedMessage}", Toast.LENGTH_LONG).show()
+                                                    }
+                                            }
+                                        } else {
+                                            val resolvedDisplayName = if (currentMode == AuthMode.SIGN_UP) firstName.trim() else "John"
+                                            UserSessionManager.saveSession(resolvedDisplayName)
+                                            isBackendProcessing = false
+                                            onLoginSuccess()
+                                        }
+                                    }
+                                },
+                                enabled = isFormInputValid && !isBackendProcessing,
+                                modifier = Modifier.weight(1f).fillMaxHeight().shadow(4.dp, RoundedCornerShape(12.dp)),
+                                shape = RoundedCornerShape(12.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0D1B2A), disabledContainerColor = Color(0xFFE0E1DD))
+                            ) {
+                                if (isBackendProcessing) {
+                                    CircularProgressIndicator(modifier = Modifier.size(18.dp), color = Color.White, strokeWidth = 2.dp)
+                                } else {
+                                    Text(text = if (currentMode == AuthMode.SIGN_UP) "Create Account" else "Sign In", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                                }
+                            }
+
+                            // 🎯 Clean Standalone Branded Single-Icon Frame
+                            Box(
+                                modifier = Modifier
+                                    .size(46.dp)
+                                    .shadow(2.dp, RoundedCornerShape(12.dp))
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(Color.White)
+                                    .border(1.dp, Color(0xFFE0E1DD), RoundedCornerShape(12.dp))
+                                    .clickable(enabled = !isBackendProcessing && agreedToPolicies) {
+                                        triggerGoogleIdentityPipeline(
+                                            context = context,
+                                            coroutineScope = coroutineScope,
+                                            credentialManager = credentialManager,
+                                            firebaseAuth = firebaseAuth,
+                                            firestore = firestore,
+                                            selectedRole = selectedRole,
+                                            onProcessingStateChange = { isBackendProcessing = it },
+                                            onSuccess = onLoginSuccess
+                                        )
+                                    },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Image(
+                                    painter = painterResource(id = R.drawable.ic_google_logo),
+                                    contentDescription = "Google Sign-In",
+                                    modifier = Modifier.size(24.dp),
+                                    contentScale = ContentScale.Fit
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(14.dp))
+
+                        // --- 6. FOOTER SWITCH TOGGLE ---
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
+                            Text(text = if (currentMode == AuthMode.SIGN_UP) "Already have an account? " else "Don't have an account yet? ", fontSize = 12.sp, color = Color(0xFF778DA9))
+                            Text(
+                                text = if (currentMode == AuthMode.SIGN_UP) "Sign In" else "Sign Up", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0D1B2A),
+                                modifier = Modifier.clickable {
+                                    authMode = if (currentMode == AuthMode.SIGN_UP) AuthMode.SIGN_IN else AuthMode.SIGN_UP
+                                }
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -461,7 +474,6 @@ fun OnboardingLoginScreen(onLoginSuccess: () -> Unit) {
     }
 }
 
-// --- CREDENTIAL MANAGER GOOGLE IDENTITY DISPATCH PIPELINE ---
 private fun triggerGoogleIdentityPipeline(
     context: Context,
     coroutineScope: CoroutineScope,
@@ -473,7 +485,6 @@ private fun triggerGoogleIdentityPipeline(
     onSuccess: () -> Unit
 ) {
     if (firebaseAuth == null || firestore == null) {
-        // Simulation Environment Trigger Fallback
         UserSessionManager.saveSession("Google Resident")
         onSuccess()
         return
@@ -481,7 +492,7 @@ private fun triggerGoogleIdentityPipeline(
 
     val googleIdOption = GetGoogleIdOption.Builder()
         .setFilterByAuthorizedAccounts(false)
-        .setServerClientId(context.getString(R.string.default_web_client_id)) // Requires your client web string from your local values.xml configurations
+        .setServerClientId(context.getString(R.string.default_web_client_id))
         .setAutoSelectEnabled(true)
         .build()
 
@@ -502,7 +513,6 @@ private fun triggerGoogleIdentityPipeline(
                         val uid = authResult.user?.uid ?: ""
                         val nameStr = authResult.user?.displayName ?: "Google User"
 
-                        // Check if database account metadata already logs a persistence record
                         firestore.collection("users").document(uid).get()
                             .addOnSuccessListener { doc ->
                                 if (!doc.exists()) {
@@ -533,81 +543,6 @@ private fun triggerGoogleIdentityPipeline(
     }
 }
 
-// --- 🚀 NATIVE VECTOR-DRAWN FOUR COLOR GOOGLE BRAND ICON ---
-@Composable
-fun GoogleLogo(modifier: Modifier = Modifier) {
-    Canvas(modifier = modifier) {
-        val width = size.width
-        val height = size.height
-        val cx = width / 2f
-        val cy = height / 2f
-        val r = width * 0.45f
-
-        // Red Segment Path
-        val redPath = Path().apply {
-            moveTo(cx, cy)
-            lineTo(cx - r * 0.7f, cy - r * 0.7f)
-            arcTo(Rect(cx - r, cy - r, cx + r, cy + r), 225f, 90f, false)
-            lineTo(cx, cy)
-            close()
-        }
-        drawPath(redPath, Color(0xFFEA4335))
-
-        // Yellow Segment Path
-        val yellowPath = Path().apply {
-            moveTo(cx, cy)
-            lineTo(cx - r * 0.7f, cy + r * 0.7f)
-            arcTo(Rect(cx - r, cy - r, cx + r, cy + r), 135f, 90f, false)
-            lineTo(cx, cy)
-            close()
-        }
-        drawPath(yellowPath, Color(0xFFFBBC05))
-
-        // Green Segment Path
-        val greenPath = Path().apply {
-            moveTo(cx, cy)
-            lineTo(cx + r * 0.9f, cy + r * 0.4f)
-            arcTo(Rect(cx - r, cy - r, cx + r, cy + r), 25f, 110f, false)
-            lineTo(cx, cy)
-            close()
-        }
-        drawPath(greenPath, Color(0xFF34A853))
-
-        // Blue Segment Path & G Stem Cross-Section
-        val bluePath = Path().apply {
-            moveTo(cx, cy)
-            lineTo(cx + r, cy)
-            arcTo(Rect(cx - r, cy - r, cx + r, cy + r), 0f, -45f, false)
-            lineTo(cx, cy)
-            close()
-        }
-        drawPath(bluePath, Color(0xFF4285F4))
-
-        val gStemPath = Path().apply {
-            moveTo(cx, cy - r * 0.2f)
-            lineTo(cx + r, cy - r * 0.2f)
-            lineTo(cx + r, cy + r * 0.2f)
-            lineTo(cx + r * 0.15f, cy + r * 0.2f)
-            lineTo(cx + r * 0.15f, cy)
-            lineTo(cx, cy)
-            close()
-        }
-        drawPath(gStemPath, Color(0xFF4285F4))
-
-        // Inner Core Mask Cutout to structure a precise geometric 'G'
-        drawCircle(color = Color.White, radius = r * 0.48f, center = Offset(cx, cy))
-
-        val clearBarPath = Path().apply {
-            moveTo(cx, cy)
-            lineTo(cx + r * 0.6f, cy - r * 0.45f)
-            lineTo(cx + r * 0.8f, cy - r * 0.2f)
-            close()
-        }
-        drawPath(clearBarPath, Color.White)
-    }
-}
-
-// --- CUSTOM INTERACTIVE INPUT COMPONENT ---
 @Composable
 fun CivicCustomTextField(
     value: String,
