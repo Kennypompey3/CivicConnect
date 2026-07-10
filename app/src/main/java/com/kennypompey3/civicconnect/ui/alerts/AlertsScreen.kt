@@ -21,9 +21,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.kennypompey3.civicconnect.R
 import com.kennypompey3.civicconnect.ui.components.CivicTopHeader
 
+// Keep your base data models intact at the top of the file
 enum class AlertSeverity { SEVERE, IN_PROGRESS, RESOLVED }
 
 data class AlertItem(
@@ -35,19 +37,13 @@ data class AlertItem(
 )
 
 @Composable
-fun AlertsScreen() {
-    val alertsList = remember {
-        mutableStateListOf(
-            AlertItem("1", "Heavy Rain Alert", "Flash flood warning. Please report blocked drains immediately.", "3h ago", AlertSeverity.SEVERE),
-            AlertItem("2", "Power Outage", "Major power outage reported in Sector 7.", "15m ago", AlertSeverity.SEVERE),
-            AlertItem("3", "Crew Assigned", "Maintenance crew is heading to your reported broken light.", "1h ago", AlertSeverity.IN_PROGRESS),
-            AlertItem("4", "Inspection Scheduled", "Sidewalk damage report is scheduled for inspection.", "1h ago", AlertSeverity.IN_PROGRESS),
-            AlertItem("5", "Pothole Fixed", "The pothole on 4th Avenue has been fixed!", "1d ago", AlertSeverity.RESOLVED),
-            AlertItem("6", "Trash Cleared", "Waste dump behind Market St has been cleared.", "2d ago", AlertSeverity.RESOLVED)
-        )
-    }
+fun AlertsScreen(
+    // 🎯 STEP 3 INTEGRATION: Feed your ViewModel straight into the screen contract
+    viewModel: AlertsViewModel = viewModel()
+) {
+    // Collect the dynamic UI state stream natively
+    val uiState by viewModel.uiState.collectAsState()
 
-    // 🎯 PIXEL-PERFECT POSITION SYNC: Replicating the HomeScreen container tree
     Scaffold(
         containerColor = Color(0xFFF8FAFC),
         bottomBar = {}
@@ -56,43 +52,55 @@ fun AlertsScreen() {
             modifier = Modifier
                 .fillMaxSize()
                 .background(Color(0xFFF8FAFC))
-                .padding(scaffoldPadding) // Leverages identical inset profiles as HomeScreen
+                .padding(scaffoldPadding) // Preserves the exact same spatial insets as your HomeScreen
         ) {
 
-            // Anchored in the exact same spatial coordinates
+            // Anchored title axis matches the precise pixel coordinates of your Home tab
             CivicTopHeader(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 20.dp, vertical = 14.dp)
             )
 
-            // Bounded scroll container allowing notifications to glide cleanly beneath the fixed title axis
-            LazyColumn(
+            // Viewport container managing asynchronous layout content
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f),
-                contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 8.dp, bottom = 120.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+                contentAlignment = Alignment.Center
             ) {
-                // Severe Section
-                val severeAlerts = alertsList.filter { it.severity == AlertSeverity.SEVERE }
-                if (severeAlerts.isNotEmpty()) {
-                    item { AlertSectionHeader(title = "SEVERE  •  LOCAL ALERTS", color = Color(0xFFF24822)) }
-                    items(severeAlerts, key = { it.id }) { alert -> AlertCard(item = alert) }
-                }
+                if (uiState.isLoading) {
+                    // Modern production-grade feedback loop while network requests resolve
+                    CircularProgressIndicator(
+                        color = Color(0xFF1B263B)
+                    )
+                } else {
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 8.dp, bottom = 120.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        // Severe Section (Now filtering dynamically off your live state stream)
+                        val severeAlerts = uiState.alerts.filter { it.severity == AlertSeverity.SEVERE }
+                        if (severeAlerts.isNotEmpty()) {
+                            item { AlertSectionHeader(title = "SEVERE  •  LOCAL ALERTS", color = Color(0xFFF24822)) }
+                            items(severeAlerts, key = { it.id }) { alert -> AlertCard(item = alert) }
+                        }
 
-                // Progress Section
-                val progressAlerts = alertsList.filter { it.severity == AlertSeverity.IN_PROGRESS }
-                if (progressAlerts.isNotEmpty()) {
-                    item { AlertSectionHeader(title = "WORK-IN-PROGRESS", color = Color(0xFF778DA9)) }
-                    items(progressAlerts, key = { it.id }) { alert -> AlertCard(item = alert) }
-                }
+                        // Progress Section
+                        val progressAlerts = uiState.alerts.filter { it.severity == AlertSeverity.IN_PROGRESS }
+                        if (progressAlerts.isNotEmpty()) {
+                            item { AlertSectionHeader(title = "WORK-IN-PROGRESS", color = Color(0xFF778DA9)) }
+                            items(progressAlerts, key = { it.id }) { alert -> AlertCard(item = alert) }
+                        }
 
-                // Resolved Section
-                val resolvedAlerts = alertsList.filter { it.severity == AlertSeverity.RESOLVED }
-                if (resolvedAlerts.isNotEmpty()) {
-                    item { AlertSectionHeader(title = "ISSUES RESOLVED", color = Color(0xFF778DA9)) }
-                    items(resolvedAlerts, key = { it.id }) { alert -> AlertCard(item = alert) }
+                        // Resolved Section
+                        val resolvedAlerts = uiState.alerts.filter { it.severity == AlertSeverity.RESOLVED }
+                        if (resolvedAlerts.isNotEmpty()) {
+                            item { AlertSectionHeader(title = "ISSUES RESOLVED", color = Color(0xFF778DA9)) }
+                            items(resolvedAlerts, key = { it.id }) { alert -> AlertCard(item = alert) }
+                        }
+                    }
                 }
             }
         }
