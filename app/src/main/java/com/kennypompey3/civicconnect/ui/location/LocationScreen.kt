@@ -25,80 +25,75 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
-import com.kennypompey3.civicconnect.R
-import com.kennypompey3.civicconnect.ui.components.CivicTopHeader
-import com.kennypompey3.civicconnect.ui.components.FloatingPillBottomNavBar
-import com.kennypompey3.civicconnect.ui.components.PillNavItem
-import com.kennypompey3.civicconnect.ui.theme.CivicConnectTheme
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
-import com.google.maps.android.compose.*
+import com.google.maps.android.compose.CameraMoveStartedReason
+import com.google.maps.android.compose.GoogleMap
+import com.google.maps.android.compose.Marker
+import com.google.maps.android.compose.MapProperties
+import com.google.maps.android.compose.MapUiSettings
+import com.google.maps.android.compose.rememberCameraPositionState
+import com.google.maps.android.compose.rememberMarkerState
+import com.kennypompey3.civicconnect.ui.components.CivicTopHeader
 import kotlinx.coroutines.launch
 
 enum class LocationFilter(val label: String) {
     ALL("All Issues"), MINE("My Reports"), TRENDING("Trending")
 }
 
-private object LocationLayoutDefaults {
-    val HeaderHorizontalPadding = 18.dp
-    val HeaderVerticalPadding = 14.dp
-    val ContentHorizontalPadding = 18.dp
-    val HeaderToMapSpacing = 18.dp
-    val OverlayTailSpacer = 120.dp
-}
-
-// ✅ Restored: The main public interface screen that MainTabsScreen connects to directly
 @Composable
 fun LocationScreen(
     windowSizeClass: WindowSizeClass,
     showBottomNav: Boolean = true,
-    onStartReportCreation: (LatLng) -> Unit = {} // The parameter the compiler was missing!
+    onStartReportCreation: (LatLng) -> Unit = {}
 ) {
     var selectedFilter by remember { mutableStateOf(LocationFilter.ALL) }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color(0xFFF8FAFC))
-            .statusBarsPadding()
-    ) {
-        CivicTopHeader(
-            userName = "Sarah",
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(
-                    horizontal = LocationLayoutDefaults.HeaderHorizontalPadding,
-                    vertical = LocationLayoutDefaults.HeaderVerticalPadding
-                )
-        )
+    // 🎯 PIXEL-PERFECT ALIGNMENT: Wrapping in Scaffold to sync layout metrics with HomeScreen
+    Scaffold(
+        containerColor = Color(0xFFF8FAFC),
+        bottomBar = {}
+    ) { scaffoldPadding ->
 
         Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .weight(1f)
-                .padding(horizontal = LocationLayoutDefaults.ContentHorizontalPadding)
+                .fillMaxSize()
+                .background(Color(0xFFF8FAFC))
+                .padding(scaffoldPadding) // Leverages identical inset profiles as HomeScreen
         ) {
-            Spacer(modifier = Modifier.height(LocationLayoutDefaults.HeaderToMapSpacing))
+            // Header snaps to the exact same visual coordinates across tabs
+            CivicTopHeader(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp, vertical = 14.dp)
+            )
 
+            // Exact 44dp gap separating header from upper map threshold
+            Spacer(modifier = Modifier.height(44.dp))
+
+            // Non-scrollable adaptive Map Canvas Frame
             LocationMapCardPhase2(
                 selectedFilter = selectedFilter,
                 onFilterSelected = { selectedFilter = it },
-                onReportConfirmed = onStartReportCreation, // Forwards data directly down the chain
-                modifier = Modifier.fillMaxWidth().weight(1f)
+                onReportConfirmed = onStartReportCreation,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp)
+                    // 🚀 PRODUCTION GRADE: Replaces hardcoded 584dp with weight layout responsiveness
+                    .weight(1f)
             )
 
-            Spacer(modifier = Modifier.height(LocationLayoutDefaults.OverlayTailSpacer))
+            // Mathematically clears your external floating navbar overlay shell container (120dp) safely
+            Spacer(modifier = Modifier.height(120.dp))
         }
     }
 }
@@ -171,7 +166,11 @@ private fun LocationMapCardPhase2(
             }
         ) {
             droppedPinCoordinates?.let { pinLocation ->
-                Marker(state = MarkerState(position = pinLocation), title = "Selected Location")
+                val markerState = rememberMarkerState(key = pinLocation.toString(), position = pinLocation)
+                Marker(
+                    state = markerState,
+                    title = "Selected Location"
+                )
             }
         }
 
@@ -181,12 +180,11 @@ private fun LocationMapCardPhase2(
             FilterChipPill(label = LocationFilter.TRENDING.label, selected = selectedFilter == LocationFilter.TRENDING, onClick = { onFilterSelected(LocationFilter.TRENDING) })
         }
 
-        // Smooth recerting FAB button anchor
         if (!isCameraAnchoredToUser && !isPopupVisible) {
             Box(
                 modifier = Modifier
                     .align(Alignment.BottomStart)
-                    .padding(start = 16.dp, bottom = 24.dp)
+                    .padding(start = 16.dp, bottom = 16.dp)
                     .shadow(6.dp, CircleShape)
                     .clip(CircleShape)
                     .background(Color.White)
@@ -215,7 +213,9 @@ private fun LocationMapCardPhase2(
 
         AnimatedVisibility(
             visible = isPopupVisible,
-            modifier = Modifier.align(Alignment.BottomCenter),
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(bottom = 12.dp, start = 12.dp, end = 12.dp),
             enter = slideInVertically(initialOffsetY = { h -> h }) + fadeIn(),
             exit = slideOutVertically(targetOffsetY = { h -> h }) + fadeOut()
         ) {
@@ -236,7 +236,7 @@ private fun LocationMapCardPhase2(
 @Composable
 private fun CardModalPopup(onCancelClick: () -> Unit, onStartClick: () -> Unit, modifier: Modifier = Modifier) {
     Column(
-        modifier = modifier.fillMaxWidth().padding(12.dp).clip(RoundedCornerShape(24.dp)).background(Color(0xFF1B263B)).padding(horizontal = 16.dp, vertical = 20.dp),
+        modifier = modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(Color(0xFF1B263B)).padding(horizontal = 16.dp, vertical = 20.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Icon(imageVector = Icons.Default.LocationOn, contentDescription = null, tint = Color.White, modifier = Modifier.size(32.dp))
