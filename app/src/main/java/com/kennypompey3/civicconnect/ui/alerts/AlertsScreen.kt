@@ -8,7 +8,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.PendingActions
 import androidx.compose.material.icons.outlined.WarningAmber
@@ -23,6 +22,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.kennypompey3.civicconnect.R
+import com.kennypompey3.civicconnect.ui.components.CivicTopHeader
 
 enum class AlertSeverity { SEVERE, IN_PROGRESS, RESOLVED }
 
@@ -35,7 +35,7 @@ data class AlertItem(
 )
 
 @Composable
-fun AlertsScreen(userName: String = "Sarah") {
+fun AlertsScreen() {
     val alertsList = remember {
         mutableStateListOf(
             AlertItem("1", "Heavy Rain Alert", "Flash flood warning. Please report blocked drains immediately.", "3h ago", AlertSeverity.SEVERE),
@@ -47,63 +47,54 @@ fun AlertsScreen(userName: String = "Sarah") {
         )
     }
 
-    LazyColumn(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color(0xFFF8FAFC)),
-        // 110.dp bottom padding allows lists to clear your floating navigation bar shield nicely
-        contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 24.dp, bottom = 110.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        item {
-            AlertsHeader(userName = userName)
-            Spacer(modifier = Modifier.height(12.dp))
-        }
-
-        // Severe Section
-        val severeAlerts = alertsList.filter { it.severity == AlertSeverity.SEVERE }
-        if (severeAlerts.isNotEmpty()) {
-            item { AlertSectionHeader(title = "SEVERE  •  LOCAL ALERTS", color = Color(0xFFF24822)) }
-            items(severeAlerts) { alert -> AlertCard(item = alert) }
-        }
-
-        // Progress Section
-        val progressAlerts = alertsList.filter { it.severity == AlertSeverity.IN_PROGRESS }
-        if (progressAlerts.isNotEmpty()) {
-            item { AlertSectionHeader(title = "WORK-INPROGRESS", color = Color(0xFF778DA9)) }
-            items(progressAlerts) { alert -> AlertCard(item = alert) }
-        }
-
-        // Resolved Section
-        val resolvedAlerts = alertsList.filter { it.severity == AlertSeverity.RESOLVED }
-        if (resolvedAlerts.isNotEmpty()) {
-            item { AlertSectionHeader(title = "ISSUES RESOLVED", color = Color(0xFF778DA9)) }
-            items(resolvedAlerts) { alert -> AlertCard(item = alert) }
-        }
-    }
-}
-
-@Composable
-private fun AlertsHeader(userName: String) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .statusBarsPadding(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Column {
-            Text(text = "CivicConnect", fontSize = 26.sp, fontWeight = FontWeight.Black, color = Color(0xFF0D1B2A))
-            Text(text = "Good Morning, $userName", fontSize = 14.sp, fontWeight = FontWeight.Medium, color = Color(0xFF778DA9))
-        }
-        Box(
+    // 🎯 PIXEL-PERFECT POSITION SYNC: Replicating the HomeScreen container tree
+    Scaffold(
+        containerColor = Color(0xFFF8FAFC),
+        bottomBar = {}
+    ) { scaffoldPadding ->
+        Column(
             modifier = Modifier
-                .size(42.dp)
-                .clip(CircleShape)
-                .background(Color(0xFFE0E1DD)),
-            contentAlignment = Alignment.Center
+                .fillMaxSize()
+                .background(Color(0xFFF8FAFC))
+                .padding(scaffoldPadding) // Leverages identical inset profiles as HomeScreen
         ) {
-            Icon(imageVector = Icons.Default.Person, contentDescription = "Profile", tint = Color(0xFF415A77), modifier = Modifier.size(24.dp))
+
+            // Anchored in the exact same spatial coordinates
+            CivicTopHeader(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp, vertical = 14.dp)
+            )
+
+            // Bounded scroll container allowing notifications to glide cleanly beneath the fixed title axis
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f),
+                contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 8.dp, bottom = 120.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                // Severe Section
+                val severeAlerts = alertsList.filter { it.severity == AlertSeverity.SEVERE }
+                if (severeAlerts.isNotEmpty()) {
+                    item { AlertSectionHeader(title = "SEVERE  •  LOCAL ALERTS", color = Color(0xFFF24822)) }
+                    items(severeAlerts, key = { it.id }) { alert -> AlertCard(item = alert) }
+                }
+
+                // Progress Section
+                val progressAlerts = alertsList.filter { it.severity == AlertSeverity.IN_PROGRESS }
+                if (progressAlerts.isNotEmpty()) {
+                    item { AlertSectionHeader(title = "WORK-IN-PROGRESS", color = Color(0xFF778DA9)) }
+                    items(progressAlerts, key = { it.id }) { alert -> AlertCard(item = alert) }
+                }
+
+                // Resolved Section
+                val resolvedAlerts = alertsList.filter { it.severity == AlertSeverity.RESOLVED }
+                if (resolvedAlerts.isNotEmpty()) {
+                    item { AlertSectionHeader(title = "ISSUES RESOLVED", color = Color(0xFF778DA9)) }
+                    items(resolvedAlerts, key = { it.id }) { alert -> AlertCard(item = alert) }
+                }
+            }
         }
     }
 }
@@ -111,7 +102,9 @@ private fun AlertsHeader(userName: String) {
 @Composable
 private fun AlertSectionHeader(title: String, color: Color) {
     Row(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         if (color == Color(0xFFF24822)) {
