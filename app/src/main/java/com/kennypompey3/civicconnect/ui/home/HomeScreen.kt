@@ -31,6 +31,7 @@ import com.kennypompey3.civicconnect.Issue
 import com.kennypompey3.civicconnect.sampleIssuesExpanded
 import com.kennypompey3.civicconnect.ui.components.FloatingPillBottomNavBar
 import com.kennypompey3.civicconnect.ui.components.PillNavItem
+import com.kennypompey3.civicconnect.ui.components.CivicTopHeader
 import com.kennypompey3.civicconnect.ui.theme.CivicConnectTheme
 
 @Composable
@@ -69,8 +70,10 @@ fun HomeScreen(
                     .background(Color(0xFFF8FAFC))
                     .padding(scaffoldPadding)
             ) {
-                HomeHeader(
-                    userName = uiState.userName,
+                // In CivicConnect/app/src/main/java/com/kennypompey3/civicconnect/ui/home/HomeScreen.kt
+
+// Replace HomeHeader with your standalone component asset:
+                CivicTopHeader(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 20.dp, vertical = 14.dp)
@@ -144,21 +147,6 @@ fun HomeScreen(
                 )
             }
         }
-    }
-}
-
-@Composable
-private fun HomeHeader(userName: String, modifier: Modifier = Modifier) {
-    Row(
-        modifier = modifier,
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Column {
-            Text(text = "CivicConnect", color = Color.Black, fontSize = 22.sp, fontWeight = FontWeight.Bold)
-            Text(text = "Good Morning, $userName", color = Color(0xFF90A199), fontSize = 14.sp)
-        }
-        Box(modifier = Modifier.size(40.dp).clip(CircleShape).background(Color(0xFFD28A8A)))
     }
 }
 
