@@ -3,6 +3,7 @@ package com.kennypompey3.civicconnect.ui.components
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -18,45 +19,55 @@ import com.kennypompey3.civicconnect.data.UserSessionManager
 
 @Composable
 fun CivicTopHeader(
-    userName: String = "Sarah",
     modifier: Modifier = Modifier,
     avatarContent: @Composable (() -> Unit)? = null
 ) {
-    // Read from the persistent storage cache state loop
+    // 🚀 DYNAMIC DATA STREAM: Reads real cached session attributes natively without relying on manual placeholders
     val savedName by UserSessionManager.userName.collectAsState()
     val greetingPrefix = UserSessionManager.getGreetingPrefix()
-
-    // Intercept default placeholders to reflect the actual user data cleanly
-    val finalName = if (userName == "Sarah" && savedName.isNotBlank()) savedName else userName
+    val finalName = savedName.ifBlank { "User" }
 
     Row(
-        modifier = modifier,
+        modifier = modifier
+            .fillMaxWidth()
+            .statusBarsPadding(), // Ensures the title never clips underneath system overlays
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
         Column {
             Text(
                 text = "CivicConnect",
-                color = Color.Black,
-                fontSize = 22.sp,
-                fontWeight = FontWeight.Bold
+                color = Color(0xFF0D1B2A),
+                fontSize = 26.sp, // Upgraded layout typography profile
+                fontWeight = FontWeight.Black
             )
             Text(
                 text = "$greetingPrefix, $finalName",
-                color = Color(0xFF90A199),
-                fontSize = 14.sp
+                color = Color(0xFF90A199), // Fixed slate-green theme signature color
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Medium
             )
         }
 
         if (avatarContent != null) {
             avatarContent()
         } else {
+            // High-fidelity profile image slot matching your template coordinates exactly
             Box(
                 modifier = Modifier
-                    .size(40.dp)
+                    .size(42.dp)
                     .clip(CircleShape)
-                    .background(Color(0xFFD28A8A))
-            )
+                    .background(Color(0xFFE0E1DD)),
+                contentAlignment = Alignment.Center
+            ) {
+                // Fallback placeholder profile matrix
+                Text(
+                    text = finalName.take(1).uppercase(),
+                    color = Color(0xFF415A77),
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 16.sp
+                )
+            }
         }
     }
 }
