@@ -53,7 +53,7 @@ fun MainTabsScreen(windowSizeClass: WindowSizeClass) {
                     showReportWizard = true
                 }
             )
-            2 -> AlertsScreen(userName = "Sarah")
+            2 -> AlertsScreen()
             3 -> ProfileScreen(windowSizeClass = windowSizeClass)
         }
 
